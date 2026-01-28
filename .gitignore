@@ -1,0 +1,84 @@
+# Dependencies
+node_modules/
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
+
+# Environment variables (NOTA: .env se incluye en repo para facilitar el examen)
+.env.local
+.env.*.local
+
+# Build outputs
+dist/
+build/
+out/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Test coverage
+coverage/
+.nyc_output/
+
+# Temp files
+tmp/
+temp/
+*.tmp
+*.bak
+
+# Database
+*.sqlite
+*.db
+pgdata/
+
+# =====================================================
+# ARCHIVOS DEL PROFESOR - NO PUBLICAR EN REPO PÚBLICO
+# =====================================================
+
+# Soluciones SQL completas
+database-teacher/
+
+# Soluciones de queries TypeScript
+backend/src/database/queries-solutions/
+
+# Scripts de validación y calificación (SOLO PARA EL PROFESOR)
+validar-examen.sh
+copiar-soluciones.sh
+restaurar-vacios.sh
+preparar-entorno.sh
+calificar-todos.sh
+GUIA_CALIFICACION_RAMAS.md
+
+# Carpetas de calificaciones generadas
+calificaciones_*/
+
+# Documentación del profesor
+README-TEACHER.md
+COMO_USAR_VALIDACION.md
+REVISION_PROYECTO.md
+VERIFICACION_FINAL.md
+RESUMEN_FINAL.md
+CHANGELOG.md
+SOLUCION_POSTGRESQL_LOCAL.md
+FORMATOS_SALIDA.md
+
+# Archivos temporales de validación
+/tmp/*.log
+test_output.log
+validacion_completa.log
+
+# Backups de estudiantes
+database-student/backup/

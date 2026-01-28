@@ -1,0 +1,218 @@
+/**
+ * QUERIES DE USUARIOS - users.queries.ts
+ * 
+ * INSTRUCCIONES:
+ * Este archivo contiene todos los queries SQL necesarios para el módulo de usuarios.
+ * Debes escribir ÚNICAMENTE las consultas SQL dentro de cada propiedad.
+ * 
+ * IMPORTANTE:
+ * - Usa parámetros ($1, $2, $3, etc.) para valores dinámicos
+ * - NO incluyas punto y coma (;) al final de cada query
+ * - Usa RETURNING para devolver datos después de INSERT/UPDATE/DELETE
+ * - La tabla se llama: users
+ * 
+ * Campos de la tabla users:
+ * - id (serial, primary key)
+ * - username (varchar, unique)
+ * - email (varchar, unique)
+ * - password_hash (varchar)
+ * - full_name (varchar)
+ * - role (enum: 'admin', 'manager', 'employee')
+ * - is_active (boolean, default true)
+ * - created_at (timestamp)
+ * - updated_at (timestamp)
+ * - last_login (timestamp)
+ */
+
+export const UsersQueries = {
+  /**
+   * findAll - Obtener todos los usuarios
+   * 
+   * Descripción: Obtiene la lista completa de usuarios del sistema
+   * Parámetros: ninguno
+   * Debe retornar: id, username, email, full_name, role, is_active, created_at
+   * Ordenar por: created_at descendente (más recientes primero)
+   * 
+   * NOTA: NO incluyas password_hash en el resultado
+   */
+  findAll: `
+    
+  `,
+
+  /**
+   * findById - Buscar usuario por ID
+   * 
+   * Descripción: Obtiene un usuario específico por su ID
+   * Parámetros: $1 = id del usuario (integer)
+   * Debe retornar: id, username, email, full_name, role, is_active, created_at, last_login
+   * 
+   * NOTA: NO incluyas password_hash en el resultado
+   */
+  findById: `
+    
+  `,
+
+  /**
+   * findByUsername - Buscar usuario por username (para autenticación)
+   * 
+   * Descripción: Busca un usuario por su nombre de usuario
+   * Parámetros: $1 = username (string)
+   * Debe retornar: id, username, email, password_hash, full_name, role, is_active
+   * 
+   * IMPORTANTE: Esta query SÍ debe incluir password_hash porque se usa para login
+   */
+  findByUsername: `
+    
+  `,
+
+  /**
+   * findByEmail - Buscar usuario por email
+   * 
+   * Descripción: Busca un usuario por su correo electrónico
+   * Parámetros: $1 = email (string)
+   * Debe retornar: id, username, email, full_name, role, is_active
+   */
+  findByEmail: `
+    
+  `,
+
+  /**
+   * create - Crear nuevo usuario
+   * 
+   * Descripción: Inserta un nuevo usuario en la base de datos
+   * Parámetros:
+   *   $1 = username (string)
+   *   $2 = email (string)
+   *   $3 = password_hash (string) - ya viene hasheado desde el service
+   *   $4 = full_name (string)
+   *   $5 = role (string) - 'admin', 'manager' o 'employee'
+   * 
+   * Debe retornar: id, username, email, full_name, role, is_active, created_at
+   * Usa: RETURNING para devolver el registro insertado
+   */
+  create: `
+    
+  `,
+
+  /**
+   * update - Actualizar datos de usuario
+   * 
+   * Descripción: Actualiza la información de un usuario existente
+   * Parámetros:
+   *   $1 = id (integer) - ID del usuario a actualizar
+   *   $2 = email (string)
+   *   $3 = full_name (string)
+   *   $4 = role (string)
+   *   $5 = is_active (boolean)
+   * 
+   * Debe retornar: id, username, email, full_name, role, is_active, updated_at
+   * Usa: RETURNING para devolver el registro actualizado
+   */
+  update: `
+    
+  `,
+
+  /**
+   * updatePassword - Cambiar contraseña de usuario
+   * 
+   * Descripción: Actualiza solo el password_hash de un usuario
+   * Parámetros:
+   *   $1 = id (integer) - ID del usuario
+   *   $2 = password_hash (string) - nuevo hash de contraseña
+   * 
+   * Debe retornar: id, username, email
+   * Usa: RETURNING
+   */
+  updatePassword: `
+    
+  `,
+
+  /**
+   * updateLastLogin - Actualizar timestamp de último login
+   * 
+   * Descripción: Actualiza el campo last_login con la fecha/hora actual
+   * Parámetros:
+   *   $1 = id (integer) - ID del usuario
+   * 
+   * Debe retornar: id, last_login
+   * Usa: CURRENT_TIMESTAMP para establecer la fecha actual
+   * Usa: RETURNING
+   */
+  updateLastLogin: `
+    
+  `,
+
+  /**
+   * deactivate - Desactivar usuario
+   * 
+   * Descripción: Marca un usuario como inactivo (is_active = false)
+   * Parámetros:
+   *   $1 = id (integer) - ID del usuario
+   * 
+   * Debe retornar: id, username, is_active
+   * Usa: RETURNING
+   */
+  deactivate: `
+    
+  `,
+
+  /**
+   * delete - Eliminar usuario permanentemente
+   * 
+   * Descripción: Elimina un usuario de la base de datos
+   * Parámetros:
+   *   $1 = id (integer) - ID del usuario
+   * 
+   * Debe retornar: id
+   * Usa: RETURNING
+   */
+  delete: `
+    
+  `,
+
+  /**
+   * findByRole - Buscar usuarios por rol
+   * 
+   * Descripción: Filtra usuarios por su rol (admin, manager, employee)
+   * Parámetros:
+   *   $1 = role (string) - rol a buscar
+   * 
+   * Debe retornar: id, username, email, full_name, role, is_active
+   * Ordenar por: full_name ascendente (orden alfabético)
+   */
+  findByRole: `
+    
+  `,
+
+  /**
+   * countByRole - Contar usuarios por rol (estadísticas)
+   * 
+   * Descripción: Agrupa usuarios por rol y cuenta cuántos hay de cada tipo
+   * Parámetros: ninguno
+   * 
+   * Debe retornar: role, count
+   * Usa: GROUP BY y COUNT(*)
+   * Ordenar por: count descendente (mayor cantidad primero)
+   */
+  countByRole: `
+    
+  `,
+
+  /**
+   * search - Buscar usuarios por nombre o email
+   * 
+   * Descripción: Búsqueda flexible por nombre completo o email
+   * Parámetros:
+   *   $1 = search_term (string) - término de búsqueda
+   * 
+   * Debe retornar: id, username, email, full_name, role
+   * Usa: ILIKE para búsqueda case-insensitive
+   * Busca en: full_name OR email
+   * Ordenar por: full_name ascendente
+   * 
+   * Ejemplo: Si $1 = '%juan%', debe buscar usuarios cuyo nombre o email contenga 'juan'
+   */
+  search: `
+    
+  `,
+};
