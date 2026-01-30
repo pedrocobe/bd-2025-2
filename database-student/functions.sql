@@ -23,6 +23,18 @@
 --
 -- TODO: Escribe la función aquí
 
+CREATE OR REPLACE FUNCTION calculate_order_subtotal(p_order_id INTEGER)
+RETURNS DECIMAL(10,2)
+LANGUAGE plpgsql
+AS $$
+DECLARE
+	s NUMERIC := 0;
+BEGIN
+	SELECT COALESCE(SUM(subtotal),0) INTO s FROM order_items WHERE order_id = p_order_id;
+	RETURN ROUND(s::DECIMAL(10,2),2);
+END;
+$$;
+
 
 
 -- FUNCIÓN 2: apply_discount
@@ -38,6 +50,18 @@
 --
 -- TODO: Escribe la función aquí
 
+CREATE OR REPLACE FUNCTION apply_discount(
+	p_price DECIMAL(10,2),
+	p_discount_percent DECIMAL(5,2)
+)
+RETURNS DECIMAL(10,2)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+	RETURN ROUND(COALESCE(p_price,0) - (COALESCE(p_price,0) * COALESCE(p_discount_percent,0) / 100.0), 2);
+END;
+$$;
+
 
 
 -- FUNCIÓN 3: calculate_tax
@@ -51,6 +75,15 @@
 -- - Redondea a 2 decimales
 --
 -- TODO: Escribe la función aquí
+
+CREATE OR REPLACE FUNCTION calculate_tax(p_subtotal DECIMAL(10,2))
+RETURNS DECIMAL(10,2)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+	RETURN ROUND((COALESCE(p_subtotal,0) * 16) / 100.0, 2);
+END;
+$$;
 
 
 
@@ -69,6 +102,22 @@
 --
 -- TODO: Escribe la función aquí
 
+CREATE OR REPLACE FUNCTION update_customer_statistics(p_customer_id INTEGER)
+RETURNS BOOLEAN
+LANGUAGE plpgsql
+AS $$
+DECLARE
+	tot NUMERIC;
+	cnt INTEGER;
+BEGIN
+	SELECT COALESCE(SUM(total),0), COALESCE(COUNT(*),0) INTO tot, cnt FROM orders WHERE customer_id = p_customer_id AND status <> 'cancelled';
+	UPDATE customers SET total_spent = tot, order_count = cnt WHERE id = p_customer_id;
+	RETURN FOUND;
+EXCEPTION WHEN OTHERS THEN
+	RETURN FALSE;
+END;
+$$;
+
 
 
 -- FUNCIÓN 5: check_product_availability
@@ -84,6 +133,17 @@
 -- - Retorna el resultado de la comparación
 --
 -- TODO: Escribe la función aquí
+
+CREATE OR REPLACE FUNCTION check_product_availability(p_product_id INTEGER, p_quantity INTEGER)
+RETURNS BOOLEAN
+LANGUAGE plpgsql
+AS $$
+BEGIN
+	RETURN EXISTS(
+		SELECT 1 FROM products WHERE id = p_product_id AND COALESCE(stock_quantity,0) >= COALESCE(p_quantity,0)
+	);
+END;
+$$;
 
 
 
@@ -101,6 +161,24 @@
 --
 -- TODO: Escribe la función aquí
 
+CREATE OR REPLACE FUNCTION calculate_profit_margin(p_product_id INTEGER)
+RETURNS DECIMAL(5,2)
+LANGUAGE plpgsql
+AS $$
+DECLARE
+	pr NUMERIC;
+	ct NUMERIC;
+BEGIN
+	SELECT price, cost INTO pr, ct FROM products WHERE id = p_product_id;
+	pr := COALESCE(pr,0);
+	ct := COALESCE(ct,0);
+	IF pr = 0 THEN
+		RETURN 0;
+	END IF;
+	RETURN ROUND(((pr - ct) / pr) * 100, 2);
+END;
+$$;
+
 
 
 -- FUNCIÓN 7: days_since_last_order
@@ -116,6 +194,21 @@
 --
 -- TODO: Escribe la función aquí
 
+CREATE OR REPLACE FUNCTION days_since_last_order(p_customer_id INTEGER)
+RETURNS INTEGER
+LANGUAGE plpgsql
+AS $$
+DECLARE
+	last_ts TIMESTAMP;
+BEGIN
+	SELECT MAX(created_at) INTO last_ts FROM orders WHERE customer_id = p_customer_id;
+	IF last_ts IS NULL THEN
+		RETURN NULL;
+	END IF;
+	RETURN (CURRENT_DATE - last_ts::date);
+END;
+$$;
+
 
 
 -- FUNCIÓN 8: get_inventory_value
@@ -128,6 +221,18 @@
 -- - Usa COALESCE para retornar 0 si no hay productos
 --
 -- TODO: Escribe la función aquí
+
+CREATE OR REPLACE FUNCTION get_inventory_value()
+RETURNS DECIMAL(12,2)
+LANGUAGE plpgsql
+AS $$
+DECLARE
+	v NUMERIC;
+BEGIN
+	SELECT SUM(stock_quantity * cost) INTO v FROM products WHERE is_active = TRUE;
+	RETURN ROUND(COALESCE(v,0),2);
+END;
+$$;
 
 
 
