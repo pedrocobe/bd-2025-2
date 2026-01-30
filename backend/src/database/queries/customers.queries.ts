@@ -13,7 +13,9 @@ export const CustomersQueries = {
    * Orden: Por created_at descendente
    */
   findAll: `
-    -- TODO: Escribe tu consulta aquí
+    SELECT *
+    FROM customers
+    ORDER BY created_at DESC
   `,
 
   /**
@@ -24,7 +26,9 @@ export const CustomersQueries = {
    * Retorna: Todos los campos del cliente
    */
   findById: `
-    -- TODO: Escribe tu consulta aquí
+    SELECT *
+    FROM customers
+    WHERE id = $1
   `,
 
   /**
@@ -35,7 +39,9 @@ export const CustomersQueries = {
    * Retorna: Todos los campos del cliente
    */
   findByEmail: `
-    -- TODO: Escribe tu consulta aquí
+    SELECT *
+    FROM customers
+    WHERE email = $1
   `,
 
   /**
@@ -47,7 +53,9 @@ export const CustomersQueries = {
    * Retorna: Todos los campos del cliente insertado
    */
   create: `
-    -- TODO: Escribe tu consulta aquí
+    INSERT INTO customers (first_name, last_name, email, phone, address, city, country, postal_code)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+    RETURNING *
   `,
 
   /**
@@ -59,7 +67,12 @@ export const CustomersQueries = {
    * Retorna: Todos los campos del cliente actualizado
    */
   update: `
-    -- TODO: Escribe tu consulta aquí
+    UPDATE customers
+    SET first_name = $2, last_name = $3, email = $4, phone = $5,
+        address = $6, city = $7, country = $8, postal_code = $9, is_active = $10,
+        updated_at = CURRENT_TIMESTAMP
+    WHERE id = $1
+    RETURNING *
   `,
 
   /**
@@ -70,7 +83,9 @@ export const CustomersQueries = {
    * Retorna: id
    */
   delete: `
-    -- TODO: Escribe tu consulta aquí
+    DELETE FROM customers
+    WHERE id = $1
+    RETURNING id
   `,
 
   /**
@@ -82,11 +97,20 @@ export const CustomersQueries = {
    * Nota: Calcular desde orders donde status != 'cancelled'
    */
   updateStatistics: `
-    -- TODO: Escribe tu consulta aquí (AVANZADO)
-    -- Pista: Usa subconsultas o UPDATE con JOIN
-    -- UPDATE customers SET 
-    --   total_spent = (SELECT SUM(...) FROM orders WHERE ...),
-    --   order_count = (SELECT COUNT(...) FROM orders WHERE ...)
+    UPDATE customers
+    SET total_spent = (
+          SELECT COALESCE(SUM(total), 0)
+          FROM orders
+          WHERE customer_id = $1 AND status != 'cancelled'
+        ),
+        order_count = (
+          SELECT COUNT(*)
+          FROM orders
+          WHERE customer_id = $1 AND status != 'cancelled'
+        ),
+        updated_at = CURRENT_TIMESTAMP
+    WHERE id = $1
+    RETURNING id, total_spent, order_count
   `,
 
   /**
@@ -99,7 +123,10 @@ export const CustomersQueries = {
    * Orden: Por last_name ascendente
    */
   search: `
-    -- TODO: Escribe tu consulta aquí
+    SELECT id, first_name, last_name, email, phone, city, total_spent, order_count
+    FROM customers
+    WHERE first_name ILIKE $1 OR last_name ILIKE $1 OR email ILIKE $1
+    ORDER BY last_name ASC
   `,
 
   /**
@@ -116,7 +143,13 @@ export const CustomersQueries = {
    * Límite: $1
    */
   findTopCustomers: `
-    -- TODO: Escribe tu consulta aquí
+    SELECT id, first_name, last_name, email,
+           total_spent, order_count,
+           (first_name || ' ' || last_name) AS full_name
+    FROM customers
+    WHERE is_active = true
+    ORDER BY total_spent DESC
+    LIMIT $1
   `,
 
   /**
@@ -134,7 +167,14 @@ export const CustomersQueries = {
    * Orden: Por total_revenue descendente
    */
   groupByCity: `
-    -- TODO: Escribe tu consulta aquí
+    SELECT city,
+           country,
+           COUNT(*) AS customer_count,
+           SUM(total_spent) AS total_revenue
+    FROM customers
+    WHERE is_active = true
+    GROUP BY city, country
+    ORDER BY total_revenue DESC
   `,
 
   /**
@@ -152,8 +192,14 @@ export const CustomersQueries = {
    * Orden: Por last_order_date descendente
    */
   findWithRecentOrders: `
-    -- TODO: Escribe tu consulta aquí (AVANZADO)
-    -- Pista: Usa CURRENT_DATE - INTERVAL
+    SELECT c.id, c.first_name, c.last_name, c.email,
+           COUNT(o.id) AS recent_orders,
+           MAX(o.created_at) AS last_order_date
+    FROM customers c
+    INNER JOIN orders o ON c.id = o.customer_id
+    WHERE o.created_at >= CURRENT_DATE - ($1 || ' days')::INTERVAL
+    GROUP BY c.id, c.first_name, c.last_name, c.email
+    ORDER BY last_order_date DESC
   `,
 
   /**
@@ -173,6 +219,14 @@ export const CustomersQueries = {
    * Orden: Por days_since_last_order descendente
    */
   findInactive: `
-    -- TODO: Escribe tu consulta aquí (AVANZADO)
+    SELECT c.id, c.first_name, c.last_name, c.email,
+           MAX(o.created_at) AS last_order_date,
+           CURRENT_DATE - MAX(o.created_at)::date AS days_since_last_order
+    FROM customers c
+    LEFT JOIN orders o ON c.id = o.customer_id
+    WHERE c.is_active = true
+    GROUP BY c.id, c.first_name, c.last_name, c.email
+    HAVING MAX(o.created_at) < CURRENT_DATE - ($1 || ' days')::INTERVAL OR MAX(o.created_at) IS NULL
+    ORDER BY days_since_last_order DESC
   `,
 };
