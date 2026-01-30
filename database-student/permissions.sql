@@ -15,8 +15,10 @@
 
 -- PASO 1: Eliminar roles si existen (para evitar errores al ejecutar múltiples veces)
 -- TODO: DROP ROLE IF EXISTS para cada uno de los 4 roles
-
-
+DROP ROLE IF EXISTS db_admin;
+DROP ROLE IF EXISTS db_manager;
+DROP ROLE IF EXISTS db_employee;
+DROP ROLE IF EXISTS db_readonly;
 
 -- PASO 2: Crear los 4 roles
 --
@@ -25,32 +27,60 @@
 -- Debe poder: LOGIN con password 'admin123'
 --
 -- TODO: CREATE ROLE db_admin WITH LOGIN PASSWORD 'admin123';
-
-
+CREATE ROLE db_admin WITH 
+    LOGIN 
+    PASSWORD 'admin123'
+    NOSUPERUSER
+    CREATEDB
+    CREATEROLE
+    INHERIT
+    NOREPLICATION
+    CONNECTION LIMIT -1;
 
 -- ROL 2: db_manager  
 -- Descripción: Gerente con acceso de lectura/escritura
 -- Debe poder: LOGIN con password 'manager123'
 --
 -- TODO: CREATE ROLE db_manager WITH LOGIN PASSWORD 'manager123';
-
-
+CREATE ROLE db_manager WITH 
+    LOGIN 
+    PASSWORD 'manager123'
+    NOSUPERUSER
+    NOCREATEDB
+    NOCREATEROLE
+    INHERIT
+    NOREPLICATION
+    CONNECTION LIMIT -1;
 
 -- ROL 3: db_employee
 -- Descripción: Empleado con acceso limitado
 -- Debe poder: LOGIN con password 'employee123'
 --
 -- TODO: CREATE ROLE db_employee WITH LOGIN PASSWORD 'employee123';
-
-
+CREATE ROLE db_employee WITH 
+    LOGIN 
+    PASSWORD 'employee123'
+    NOSUPERUSER
+    NOCREATEDB
+    NOCREATEROLE
+    INHERIT
+    NOREPLICATION
+    CONNECTION LIMIT -1;
 
 -- ROL 4: db_readonly
 -- Descripción: Usuario de solo lectura (para reportes)
 -- Debe poder: LOGIN con password 'readonly123'
 --
 -- TODO: CREATE ROLE db_readonly WITH LOGIN PASSWORD 'readonly123';
-
-
+CREATE ROLE db_readonly WITH 
+    LOGIN 
+    PASSWORD 'readonly123'
+    NOSUPERUSER
+    NOCREATEDB
+    NOCREATEROLE
+    INHERIT
+    NOREPLICATION
+    CONNECTION LIMIT -1;
 
 -- =====================================================
 -- PASO 3: ASIGNAR PERMISOS
@@ -70,8 +100,11 @@
 -- GRANT ALL PRIVILEGES ON ALL FUNCTIONS IN SCHEMA public TO db_admin;
 --
 -- TODO: Escribe los GRANT para db_admin
-
-
+GRANT ALL PRIVILEGES ON DATABASE ecommerce_exam TO db_admin;
+GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO db_admin;
+GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO db_admin;
+GRANT ALL PRIVILEGES ON ALL FUNCTIONS IN SCHEMA public TO db_admin;
+GRANT CREATE ON SCHEMA public TO db_admin;
 
 -- PERMISOS PARA db_manager (LECTURA/ESCRITURA COMPLETA)
 -- Debe tener:
@@ -87,8 +120,10 @@
 -- GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO db_manager;
 --
 -- TODO: Escribe los GRANT para db_manager
-
-
+GRANT CONNECT ON DATABASE ecommerce_exam TO db_manager;
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO db_manager;
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO db_manager;
+GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO db_manager;
 
 -- PERMISOS PARA db_employee (ACCESO LIMITADO)
 -- Debe tener:
@@ -105,8 +140,10 @@
 -- GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO db_employee;
 --
 -- TODO: Escribe los GRANT para db_employee
-
-
+GRANT CONNECT ON DATABASE ecommerce_exam TO db_employee;
+GRANT SELECT ON ALL TABLES IN SCHEMA public TO db_employee;
+GRANT INSERT, UPDATE ON products, customers, orders, order_items TO db_employee;
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO db_employee;
 
 -- PERMISOS PARA db_readonly (SOLO LECTURA)
 -- Debe tener:
@@ -121,8 +158,9 @@
 -- GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO db_readonly;
 --
 -- TODO: Escribe los GRANT para db_readonly
-
-
+GRANT CONNECT ON DATABASE ecommerce_exam TO db_readonly;
+GRANT SELECT ON ALL TABLES IN SCHEMA public TO db_readonly;
+GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO db_readonly;
 
 -- =====================================================
 -- PASO 4: REVOCAR PERMISOS (seguridad adicional)
@@ -135,8 +173,7 @@
 -- REVOKE DELETE ON ALL TABLES IN SCHEMA public FROM db_employee;
 --
 -- TODO: Escribe el REVOKE para db_employee
-
-
+REVOKE DELETE ON ALL TABLES IN SCHEMA public FROM db_employee;
 
 -- REVOCACIONES PARA db_readonly
 -- Asegurarse explícitamente que NO pueda:
@@ -145,8 +182,15 @@
 -- REVOKE INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public FROM db_readonly;
 --
 -- TODO: Escribe el REVOKE para db_readonly
+REVOKE INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public FROM db_readonly;
 
-
+-- REVOCACIONES DE PERMISOS POR DEFECTO (PUBLIC)
+-- Revocar todos los permisos del rol PUBLIC para mayor seguridad
+REVOKE ALL ON DATABASE ecommerce_exam FROM PUBLIC;
+REVOKE ALL ON SCHEMA public FROM PUBLIC;
+REVOKE ALL ON ALL TABLES IN SCHEMA public FROM PUBLIC;
+REVOKE ALL ON ALL SEQUENCES IN SCHEMA public FROM PUBLIC;
+REVOKE ALL ON ALL FUNCTIONS IN SCHEMA public FROM PUBLIC;
 
 -- =====================================================
 -- VERIFICACIÓN (opcional)
@@ -158,3 +202,12 @@
 -- SELECT grantee, privilege_type, table_name 
 -- FROM information_schema.table_privileges 
 -- WHERE grantee = 'db_admin';
+
+DO $$
+BEGIN
+    RAISE NOTICE '✅ 4 roles creados con permisos configurados:';
+    RAISE NOTICE '   1. db_admin - Password: admin123 - Acceso total';
+    RAISE NOTICE '   2. db_manager - Password: manager123 - Lectura/escritura completa';
+    RAISE NOTICE '   3. db_employee - Password: employee123 - Acceso limitado (no DELETE)';
+    RAISE NOTICE '   4. db_readonly - Password: readonly123 - Solo lectura para reportes';
+END $$;
