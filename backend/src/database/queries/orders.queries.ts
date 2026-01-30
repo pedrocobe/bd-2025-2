@@ -19,7 +19,13 @@ export const OrdersQueries = {
    * Orden: Por o.created_at descendente
    */
   findAll: `
-    -- TODO: Escribe tu consulta aquí
+    SELECT 
+      o.*,
+      (c.first_name || ' ' || c.last_name) AS customer_name,
+      c.email AS customer_email
+    FROM orders o
+    INNER JOIN customers c ON o.customer_id = c.id
+    ORDER BY o.created_at DESC
   `,
 
   /**
@@ -31,7 +37,13 @@ export const OrdersQueries = {
    * Join: INNER JOIN customers
    */
   findById: `
-    -- TODO: Escribe tu consulta aquí
+    SELECT 
+      o.*,
+      (c.first_name || ' ' || c.last_name) AS customer_name,
+      c.email AS customer_email
+    FROM orders o
+    INNER JOIN customers c ON o.customer_id = c.id
+    WHERE o.id = $1
   `,
 
   /**
@@ -42,7 +54,13 @@ export const OrdersQueries = {
    * Retorna: Todos los campos + customer info
    */
   findByOrderNumber: `
-    -- TODO: Escribe tu consulta aquí
+    SELECT 
+      o.*,
+      (c.first_name || ' ' || c.last_name) AS customer_name,
+      c.email AS customer_email
+    FROM orders o
+    INNER JOIN customers c ON o.customer_id = c.id
+    WHERE o.order_number = $1
   `,
 
   /**
@@ -54,7 +72,10 @@ export const OrdersQueries = {
    * Orden: Por created_at descendente
    */
   findByCustomer: `
-    -- TODO: Escribe tu consulta aquí
+    SELECT *
+    FROM orders
+    WHERE customer_id = $1
+    ORDER BY created_at DESC
   `,
 
   /**
@@ -68,20 +89,40 @@ export const OrdersQueries = {
    * Orden: Por created_at descendente
    */
   findByStatus: `
-    -- TODO: Escribe tu consulta aquí
+    SELECT 
+      o.*,
+      (c.first_name || ' ' || c.last_name) AS customer_name,
+      c.email AS customer_email
+    FROM orders o
+    INNER JOIN customers c ON o.customer_id = c.id
+    WHERE o.status = $1
+    ORDER BY o.created_at DESC
   `,
 
   /**
    * TODO: Crear un pedido (sin items)
    * Objetivo: Insertar un nuevo pedido
    * Parámetros: $1 (customer_id), $2 (order_number), $3 (shipping_address),
-   *             $4 (shipping_city), $5 (shipping_country), $6 (shipping_cost), $7 (created_by)
+   *             $4 (shipping_city), $5 (shipping_country), $6 (shipping_amount), $7 (created_by)
    * Tablas: orders
    * Retorna: Todos los campos del pedido insertado
    * Nota: subtotal, tax y total se calculan en 0, se actualizarán con triggers
    */
   create: `
-    -- TODO: Escribe tu consulta aquí
+    INSERT INTO orders (
+      customer_id,
+      order_number,
+      shipping_address,
+      shipping_city,
+      shipping_country,
+      shipping_amount,
+      payment_method,
+      subtotal,
+      tax_amount,
+      total_amount,
+      status
+    ) VALUES ($1, $2, $3, $4, $5, $6, 'pending', 0, 0, 0, 'pending')
+    RETURNING *
   `,
 
   /**
@@ -94,8 +135,20 @@ export const OrdersQueries = {
    *       Si status = 'delivered', actualizar delivered_at = CURRENT_TIMESTAMP
    */
   updateStatus: `
-    -- TODO: Escribe tu consulta aquí
-    -- Pista: Usa CASE WHEN para actualizar shipped_at y delivered_at
+    UPDATE orders
+    SET 
+      status = $2,
+      updated_at = CURRENT_TIMESTAMP,
+      shipped_at = CASE 
+        WHEN $2 = 'shipped' THEN CURRENT_TIMESTAMP
+        ELSE shipped_at
+      END,
+      delivered_at = CASE 
+        WHEN $2 = 'delivered' THEN CURRENT_TIMESTAMP
+        ELSE delivered_at
+      END
+    WHERE id = $1
+    RETURNING id, order_number, status, updated_at
   `,
 
   /**
@@ -106,7 +159,14 @@ export const OrdersQueries = {
    * Retorna: id, subtotal, tax, total, updated_at
    */
   updateTotals: `
-    -- TODO: Escribe tu consulta aquí
+    UPDATE orders
+    SET 
+      subtotal = $2,
+      tax_amount = $3,
+      total_amount = $4,
+      updated_at = CURRENT_TIMESTAMP
+    WHERE id = $1
+    RETURNING id, subtotal, tax_amount, total_amount, updated_at
   `,
 
   /**
@@ -118,7 +178,12 @@ export const OrdersQueries = {
    * Nota: Establecer status = 'cancelled'
    */
   cancel: `
-    -- TODO: Escribe tu consulta aquí
+    UPDATE orders
+    SET 
+      status = 'cancelled',
+      updated_at = CURRENT_TIMESTAMP
+    WHERE id = $1
+    RETURNING id, order_number, status
   `,
 
   /**
@@ -129,7 +194,9 @@ export const OrdersQueries = {
    * Retorna: id
    */
   delete: `
-    -- TODO: Escribe tu consulta aquí
+    DELETE FROM orders
+    WHERE id = $1
+    RETURNING id
   `,
 
   /**
@@ -139,14 +206,27 @@ export const OrdersQueries = {
    * Tablas: order_items, products
    * Retorna:
    *   oi.id, oi.order_id, oi.product_id, oi.quantity, 
-   *   oi.unit_price, oi.subtotal,
+   *   oi.unit_price, oi.total_price,
    *   p.name AS product_name, p.sku
    * Join: INNER JOIN products
    * Filtro: oi.order_id = $1
    * Orden: Por oi.id ascendente
    */
   findOrderItems: `
-    -- TODO: Escribe tu consulta aquí
+    SELECT 
+      oi.id, 
+      oi.order_id, 
+      oi.product_id, 
+      oi.quantity, 
+      oi.unit_price, 
+      oi.total_price,
+      oi.discount,
+      p.name AS product_name, 
+      p.sku
+    FROM order_items oi
+    INNER JOIN products p ON oi.product_id = p.id
+    WHERE oi.order_id = $1
+    ORDER BY oi.id ASC
   `,
 
   /**
@@ -158,7 +238,13 @@ export const OrdersQueries = {
    * Nota: subtotal se puede calcular con trigger o aquí: $3 * $4
    */
   addOrderItem: `
-    -- TODO: Escribe tu consulta aquí
+    INSERT INTO order_items (
+      order_id,
+      product_id,
+      quantity,
+      unit_price
+    ) VALUES ($1, $2, $3, $4)
+    RETURNING *
   `,
 
   /**
@@ -166,11 +252,17 @@ export const OrdersQueries = {
    * Objetivo: Modificar la cantidad de un item en el pedido
    * Parámetros: $1 (id), $2 (quantity)
    * Tablas: order_items
-   * Retorna: id, order_id, product_id, quantity, subtotal
-   * Nota: Recalcular subtotal = quantity * unit_price
+   * Retorna: id, order_id, product_id, quantity, total_price
+   * Nota: Recalcular total_price = (unit_price - discount) * quantity
    */
   updateOrderItem: `
-    -- TODO: Escribe tu consulta aquí
+    UPDATE order_items
+    SET 
+      quantity = $2,
+      -- El total_price se recalcula automáticamente por la columna GENERATED
+      updated_at = CURRENT_TIMESTAMP
+    WHERE id = $1
+    RETURNING id, order_id, product_id, quantity, total_price
   `,
 
   /**
@@ -181,7 +273,9 @@ export const OrdersQueries = {
    * Retorna: id
    */
   deleteOrderItem: `
-    -- TODO: Escribe tu consulta aquí
+    DELETE FROM order_items
+    WHERE id = $1
+    RETURNING id
   `,
 
   /**
@@ -197,9 +291,19 @@ export const OrdersQueries = {
    * Nota: Esta query puede requerir múltiples SELECTs en la aplicación
    */
   getOrderSummary: `
-    -- TODO: Escribe tu consulta aquí
-    -- Pista: Esta es la query principal del pedido,
-    -- los items se obtienen con findOrderItems
+    -- Esta consulta obtiene la información básica del pedido
+    -- Los items se obtienen con la consulta findOrderItems
+    SELECT 
+      o.*,
+      (c.first_name || ' ' || c.last_name) AS customer_name,
+      c.email AS customer_email,
+      c.phone AS customer_phone,
+      c.address AS customer_address,
+      c.city AS customer_city,
+      c.country AS customer_country
+    FROM orders o
+    INNER JOIN customers c ON o.customer_id = c.id
+    WHERE o.id = $1
   `,
 
   /**
@@ -211,7 +315,12 @@ export const OrdersQueries = {
    * Agrupación: Por order_id
    */
   calculateItemsTotal: `
-    -- TODO: Escribe tu consulta aquí
+    SELECT 
+      order_id,
+      SUM(total_price) AS total_items
+    FROM order_items
+    WHERE order_id = $1
+    GROUP BY order_id
   `,
 
   /**
@@ -224,7 +333,14 @@ export const OrdersQueries = {
    * Orden: Por created_at descendente
    */
   findByDateRange: `
-    -- TODO: Escribe tu consulta aquí
+    SELECT 
+      o.*,
+      (c.first_name || ' ' || c.last_name) AS customer_name,
+      c.email AS customer_email
+    FROM orders o
+    INNER JOIN customers c ON o.customer_id = c.id
+    WHERE o.order_date BETWEEN $1 AND $2
+    ORDER BY o.order_date DESC
   `,
 
   /**
@@ -235,12 +351,18 @@ export const OrdersQueries = {
    * Retorna:
    *   status,
    *   COUNT(*) AS order_count,
-   *   SUM(total) AS total_amount
+   *   SUM(total_amount) AS total_amount
    * Agrupación: Por status
    * Orden: Por order_count descendente
    */
   countByStatus: `
-    -- TODO: Escribe tu consulta aquí
+    SELECT 
+      status,
+      COUNT(*) AS order_count,
+      SUM(total_amount) AS total_amount
+    FROM orders
+    GROUP BY status
+    ORDER BY order_count DESC
   `,
 
   /**
@@ -249,11 +371,19 @@ export const OrdersQueries = {
    * Parámetros: $1 (min_amount)
    * Tablas: orders, customers
    * Retorna: o.*, customer_name, customer_email
-   * Filtro: o.total >= $1 AND o.status != 'cancelled'
-   * Orden: Por total descendente
+   * Filtro: o.total_amount >= $1 AND o.status != 'cancelled'
+   * Orden: Por total_amount descendente
    */
   findLargeOrders: `
-    -- TODO: Escribe tu consulta aquí
+    SELECT 
+      o.*,
+      (c.first_name || ' ' || c.last_name) AS customer_name,
+      c.email AS customer_email
+    FROM orders o
+    INNER JOIN customers c ON o.customer_id = c.id
+    WHERE o.total_amount >= $1 
+      AND o.status != 'cancelled'
+    ORDER BY o.total_amount DESC
   `,
 
   /**
