@@ -16,6 +16,11 @@
 -- PASO 1: Eliminar roles si existen (para evitar errores al ejecutar múltiples veces)
 -- TODO: DROP ROLE IF EXISTS para cada uno de los 4 roles
 
+DROP ROLE IF EXISTS db_readonly;
+DROP ROLE IF EXISTS db_employee;
+DROP ROLE IF EXISTS db_manager;
+DROP ROLE IF EXISTS db_admin;
+
 
 
 -- PASO 2: Crear los 4 roles
@@ -26,6 +31,8 @@
 --
 -- TODO: CREATE ROLE db_admin WITH LOGIN PASSWORD 'admin123';
 
+CREATE ROLE db_admin WITH LOGIN PASSWORD 'admin123';
+
 
 
 -- ROL 2: db_manager  
@@ -33,6 +40,8 @@
 -- Debe poder: LOGIN con password 'manager123'
 --
 -- TODO: CREATE ROLE db_manager WITH LOGIN PASSWORD 'manager123';
+
+CREATE ROLE db_manager WITH LOGIN PASSWORD 'manager123';
 
 
 
@@ -42,6 +51,8 @@
 --
 -- TODO: CREATE ROLE db_employee WITH LOGIN PASSWORD 'employee123';
 
+CREATE ROLE db_employee WITH LOGIN PASSWORD 'employee123';
+
 
 
 -- ROL 4: db_readonly
@@ -49,6 +60,8 @@
 -- Debe poder: LOGIN con password 'readonly123'
 --
 -- TODO: CREATE ROLE db_readonly WITH LOGIN PASSWORD 'readonly123';
+
+CREATE ROLE db_readonly WITH LOGIN PASSWORD 'readonly123';
 
 
 
@@ -71,6 +84,11 @@
 --
 -- TODO: Escribe los GRANT para db_admin
 
+GRANT ALL PRIVILEGES ON DATABASE ecommerce_exam TO db_admin;
+GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO db_admin;
+GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO db_admin;
+GRANT ALL PRIVILEGES ON ALL FUNCTIONS IN SCHEMA public TO db_admin;
+
 
 
 -- PERMISOS PARA db_manager (LECTURA/ESCRITURA COMPLETA)
@@ -87,6 +105,11 @@
 -- GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO db_manager;
 --
 -- TODO: Escribe los GRANT para db_manager
+
+GRANT CONNECT ON DATABASE ecommerce_exam TO db_manager;
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO db_manager;
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO db_manager;
+GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO db_manager;
 
 
 
@@ -106,6 +129,11 @@
 --
 -- TODO: Escribe los GRANT para db_employee
 
+GRANT CONNECT ON DATABASE ecommerce_exam TO db_employee;
+GRANT SELECT ON ALL TABLES IN SCHEMA public TO db_employee;
+GRANT INSERT, UPDATE ON products, customers, orders, order_items TO db_employee;
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO db_employee;
+
 
 
 -- PERMISOS PARA db_readonly (SOLO LECTURA)
@@ -122,6 +150,10 @@
 --
 -- TODO: Escribe los GRANT para db_readonly
 
+GRANT CONNECT ON DATABASE ecommerce_exam TO db_readonly;
+GRANT SELECT ON ALL TABLES IN SCHEMA public TO db_readonly;
+GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO db_readonly;
+
 
 
 -- =====================================================
@@ -136,6 +168,8 @@
 --
 -- TODO: Escribe el REVOKE para db_employee
 
+REVOKE DELETE ON ALL TABLES IN SCHEMA public FROM db_employee;
+
 
 
 -- REVOCACIONES PARA db_readonly
@@ -145,6 +179,8 @@
 -- REVOKE INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public FROM db_readonly;
 --
 -- TODO: Escribe el REVOKE para db_readonly
+
+REVOKE INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public FROM db_readonly;
 
 
 
