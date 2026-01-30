@@ -36,7 +36,13 @@ export const UsersQueries = {
    * NOTA: NO incluyas password_hash en el resultado
    */
   findAll: `
-    
+    -- Variante bd-3: usar CTE y ordenar por role luego created_at
+    WITH u AS (
+      SELECT id, username, email, full_name, role, is_active, created_at
+      FROM users
+    )
+    SELECT * FROM u
+    ORDER BY role ASC, created_at DESC
   `,
 
   /**
@@ -49,7 +55,9 @@ export const UsersQueries = {
    * NOTA: NO incluyas password_hash en el resultado
    */
   findById: `
-    
+    SELECT id, username, email, full_name, role, is_active, created_at, last_login
+    FROM users
+    WHERE id = $1
   `,
 
   /**
@@ -62,7 +70,9 @@ export const UsersQueries = {
    * IMPORTANTE: Esta query SÍ debe incluir password_hash porque se usa para login
    */
   findByUsername: `
-    
+    SELECT id, username, email, password_hash, full_name, role, is_active
+    FROM users
+    WHERE username = $1
   `,
 
   /**
@@ -73,7 +83,10 @@ export const UsersQueries = {
    * Debe retornar: id, username, email, full_name, role, is_active
    */
   findByEmail: `
-    
+    -- Variante bd-3: búsqueda case-insensitive
+    SELECT id, username, email, full_name, role, is_active
+    FROM users
+    WHERE LOWER(email) = LOWER($1)
   `,
 
   /**
@@ -91,7 +104,9 @@ export const UsersQueries = {
    * Usa: RETURNING para devolver el registro insertado
    */
   create: `
-    
+    INSERT INTO users (username, email, password_hash, full_name, role)
+    VALUES ($1, $2, $3, $4, $5)
+    RETURNING id, username, email, full_name, role, is_active, created_at
   `,
 
   /**
@@ -109,7 +124,10 @@ export const UsersQueries = {
    * Usa: RETURNING para devolver el registro actualizado
    */
   update: `
-    
+    UPDATE users
+    SET email = $2, full_name = $3, role = $4, is_active = $5, updated_at = CURRENT_TIMESTAMP
+    WHERE id = $1
+    RETURNING id, username, email, full_name, role, is_active, updated_at
   `,
 
   /**
@@ -124,7 +142,10 @@ export const UsersQueries = {
    * Usa: RETURNING
    */
   updatePassword: `
-    
+    UPDATE users
+    SET password_hash = $2, updated_at = CURRENT_TIMESTAMP
+    WHERE id = $1
+    RETURNING id, username, email
   `,
 
   /**
@@ -139,7 +160,10 @@ export const UsersQueries = {
    * Usa: RETURNING
    */
   updateLastLogin: `
-    
+    UPDATE users
+    SET last_login = CURRENT_TIMESTAMP
+    WHERE id = $1
+    RETURNING id, last_login
   `,
 
   /**
@@ -153,7 +177,10 @@ export const UsersQueries = {
    * Usa: RETURNING
    */
   deactivate: `
-    
+    UPDATE users
+    SET is_active = false, updated_at = CURRENT_TIMESTAMP
+    WHERE id = $1
+    RETURNING id, username, is_active
   `,
 
   /**
@@ -167,7 +194,9 @@ export const UsersQueries = {
    * Usa: RETURNING
    */
   delete: `
-    
+    DELETE FROM users
+    WHERE id = $1
+    RETURNING id
   `,
 
   /**
@@ -181,7 +210,10 @@ export const UsersQueries = {
    * Ordenar por: full_name ascendente (orden alfabético)
    */
   findByRole: `
-    
+    SELECT id, username, email, full_name, role, is_active
+    FROM users
+    WHERE role = $1
+    ORDER BY full_name ASC
   `,
 
   /**
@@ -195,7 +227,11 @@ export const UsersQueries = {
    * Ordenar por: count descendente (mayor cantidad primero)
    */
   countByRole: `
-    
+    -- Variante bd-3: usar COUNT(*) FILTER por si se quiere filtrar activos
+    SELECT role, COUNT(*)::int AS count
+    FROM users
+    GROUP BY role
+    ORDER BY count DESC
   `,
 
   /**
@@ -213,6 +249,9 @@ export const UsersQueries = {
    * Ejemplo: Si $1 = '%juan%', debe buscar usuarios cuyo nombre o email contenga 'juan'
    */
   search: `
-    
+    SELECT id, username, email, full_name, role
+    FROM users
+    WHERE full_name ILIKE $1 OR email ILIKE $1
+    ORDER BY full_name ASC
   `,
 };
