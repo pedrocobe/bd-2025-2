@@ -10,126 +10,137 @@
 -- 6. Maneja casos NULL con COALESCE
 -- =====================================================
 
--- FUNCIÓN 1: calculate_order_subtotal
--- Descripción: Calcula el subtotal de un pedido sumando los subtotales de todos sus items
--- Parámetros:
---   p_order_id INTEGER - ID del pedido
--- Retorna: DECIMAL(10,2) - Subtotal del pedido
--- 
--- Lógica:
--- - Suma todos los subtotales de order_items donde order_id = p_order_id
--- - Si no hay items, retorna 0
--- - Usa COALESCE para manejar NULLs
---
--- TODO: Escribe la función aquí
 
+-- FUNCIÓN 1: Calcula el subtotal de un pedido (calculate_order_subtotal)
+CREATE OR REPLACE FUNCTION calculate_order_subtotal(p_order_id INTEGER)
+RETURNS DECIMAL(12,2)
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    v_subtotal DECIMAL(12,2);
+BEGIN
+    SELECT COALESCE(SUM(subtotal), 0.00)
+    INTO v_subtotal
+    FROM order_items
+    WHERE order_id = p_order_id;
+    RETURN v_subtotal;
+END;
+$$;
 
+-- FUNCIÓN 2: Aplica descuento a un precio (apply_discount)
+CREATE OR REPLACE FUNCTION apply_discount(p_price DECIMAL(10,2), p_discount_percent DECIMAL(5,2))
+RETURNS DECIMAL(10,2)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    RETURN ROUND(p_price - (p_price * p_discount_percent / 100), 2);
+END;
+$$;
 
--- FUNCIÓN 2: apply_discount
--- Descripción: Aplica un porcentaje de descuento a un precio
--- Parámetros:
---   p_price DECIMAL(10,2) - Precio original
---   p_discount_percent DECIMAL(5,2) - Porcentaje de descuento (ej: 10 para 10%)
--- Retorna: DECIMAL(10,2) - Precio con descuento aplicado
---
--- Lógica:
--- - Calcula: p_price - (p_price * p_discount_percent / 100)
--- - Redondea a 2 decimales
---
--- TODO: Escribe la función aquí
+-- FUNCIÓN 3: Calcula impuesto del 16% (calculate_tax)
+CREATE OR REPLACE FUNCTION calculate_tax(p_subtotal DECIMAL(10,2))
+RETURNS DECIMAL(10,2)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    RETURN ROUND(p_subtotal * 0.16, 2);
+END;
+$$;
 
+-- FUNCIÓN 4: Actualiza estadísticas del cliente (update_customer_statistics)
+CREATE OR REPLACE FUNCTION update_customer_statistics(p_customer_id INTEGER)
+RETURNS BOOLEAN
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    UPDATE customers
+    SET
+        total_spent = COALESCE((
+            SELECT SUM(total)
+            FROM orders
+            WHERE customer_id = p_customer_id AND status != 'cancelled'), 0.00),
+        order_count = (
+            SELECT COUNT(*)
+            FROM orders
+            WHERE customer_id = p_customer_id AND status != 'cancelled'
+        )
+    WHERE id = p_customer_id;
+    RETURN TRUE;
+END;
+$$;
 
+-- FUNCIÓN 5: Verifica stock disponible (check_product_availability)
+CREATE OR REPLACE FUNCTION check_product_availability(p_product_id INTEGER, p_quantity INTEGER)
+RETURNS BOOLEAN
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    v_stock INTEGER;
+BEGIN
+    SELECT stock_quantity
+    INTO v_stock
+    FROM products
+    WHERE id = p_product_id;
+    IF v_stock IS NULL THEN
+        RETURN FALSE;
+    END IF;
+    RETURN v_stock >= p_quantity;
+END;
+$$;
 
--- FUNCIÓN 3: calculate_tax
--- Descripción: Calcula el impuesto (16%) sobre un monto
--- Parámetros:
---   p_subtotal DECIMAL(10,2) - Subtotal sobre el cual calcular impuesto
--- Retorna: DECIMAL(10,2) - Monto del impuesto
---
--- Lógica:
--- - Multiplica p_subtotal por 0.16
--- - Redondea a 2 decimales
---
--- TODO: Escribe la función aquí
+-- FUNCIÓN 6: Calcula margen de ganancia (calculate_profit_margin)
+CREATE OR REPLACE FUNCTION calculate_profit_margin(p_product_id INTEGER)
+RETURNS DECIMAL(5,2)
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    v_price DECIMAL(10,2);
+    v_cost  DECIMAL(10,2);
+BEGIN
+    SELECT price, cost
+    INTO v_price, v_cost
+    FROM products
+    WHERE id = p_product_id;
+    IF v_price IS NULL OR v_price = 0 THEN
+        RETURN 0.00;
+    END IF;
+    RETURN ROUND(
+        ((v_price - v_cost) / v_price) * 100, 2);
+END;
+$$;
 
+-- FUNCIÓN 7: Días desde la última compra (days_since_last_order)
+CREATE OR REPLACE FUNCTION days_since_last_order(p_customer_id INTEGER)
+RETURNS INTEGER
+LANGUAGE plpgsql AS $$
+DECLARE
+    v_last_order DATE;
+BEGIN
+    SELECT MAX(created_at::date)
+    INTO v_last_order
+    FROM orders
+    WHERE customer_id = p_customer_id;
+    IF v_last_order IS NULL THEN
+        RETURN NULL;
+    END IF;
+    RETURN CURRENT_DATE - v_last_order;
+END;
+$$;
 
-
--- FUNCIÓN 4: update_customer_statistics
--- Descripción: Actualiza las estadísticas de un cliente (total_spent, order_count)
--- Parámetros:
---   p_customer_id INTEGER - ID del cliente
--- Retorna: BOOLEAN - true si se actualizó, false si no
---
--- Lógica:
--- - UPDATE customers SET:
---   * total_spent = suma de orders.total donde customer_id = p_customer_id y status != 'cancelled'
---   * order_count = cantidad de orders donde customer_id = p_customer_id y status != 'cancelled'
--- - Usa subconsultas
--- - Retorna true si se ejecutó correctamente
---
--- TODO: Escribe la función aquí
-
-
-
--- FUNCIÓN 5: check_product_availability
--- Descripción: Verifica si hay stock suficiente de un producto
--- Parámetros:
---   p_product_id INTEGER - ID del producto
---   p_quantity INTEGER - Cantidad solicitada
--- Retorna: BOOLEAN - true si hay stock suficiente, false si no
---
--- Lógica:
--- - SELECT stock_quantity FROM products WHERE id = p_product_id
--- - Compara si stock_quantity >= p_quantity
--- - Retorna el resultado de la comparación
---
--- TODO: Escribe la función aquí
-
-
-
--- FUNCIÓN 6: calculate_profit_margin
--- Descripción: Calcula el margen de ganancia de un producto en porcentaje
--- Parámetros:
---   p_product_id INTEGER - ID del producto
--- Retorna: DECIMAL(5,2) - Porcentaje de margen (ej: 25.50 para 25.5%)
---
--- Lógica:
--- - SELECT price, cost FROM products WHERE id = p_product_id
--- - Si price = 0 o NULL, retorna 0
--- - Calcula: ((price - cost) / price) * 100
--- - Redondea a 2 decimales con ROUND()
---
--- TODO: Escribe la función aquí
-
-
-
--- FUNCIÓN 7: days_since_last_order
--- Descripción: Calcula cuántos días han pasado desde el último pedido de un cliente
--- Parámetros:
---   p_customer_id INTEGER - ID del cliente
--- Retorna: INTEGER - Número de días (NULL si nunca ha comprado)
---
--- Lógica:
--- - SELECT MAX(created_at) FROM orders WHERE customer_id = p_customer_id
--- - Calcula: CURRENT_DATE - fecha_ultimo_pedido
--- - Si no hay pedidos, retorna NULL
---
--- TODO: Escribe la función aquí
-
-
-
--- FUNCIÓN 8: get_inventory_value
--- Descripción: Calcula el valor total del inventario (stock_quantity * cost de todos los productos)
--- Parámetros: ninguno
--- Retorna: DECIMAL(12,2) - Valor total del inventario
---
--- Lógica:
--- - SELECT SUM(stock_quantity * cost) FROM products WHERE is_active = true
--- - Usa COALESCE para retornar 0 si no hay productos
---
--- TODO: Escribe la función aquí
-
-
+-- FUNCIÓN 8: Valor total del inventario (get_inventory_value)
+CREATE OR REPLACE FUNCTION get_inventory_value()
+RETURNS DECIMAL(12,2)
+LANGUAGE plpgsql AS $$
+DECLARE
+    v_total DECIMAL(12,2);
+BEGIN
+    SELECT COALESCE(SUM(stock_quantity * cost), 0.00)
+    INTO v_total
+    FROM products
+    WHERE is_active = TRUE;
+    RETURN v_total;
+END;
+$$;
 
 -- =====================================================
 -- VERIFICACIÓN (opcional)

@@ -25,7 +25,7 @@
  */
 
 export const UsersQueries = {
-  /**
+    /**
    * findAll - Obtener todos los usuarios
    * 
    * Descripción: Obtiene la lista completa de usuarios del sistema
@@ -35,11 +35,12 @@ export const UsersQueries = {
    * 
    * NOTA: NO incluyas password_hash en el resultado
    */
-  findAll: `
-    
-  `,
-
-  /**
+    findAll: `
+    SELECT id, username, email, full_name, role, is_active, created_at 
+    FROM users
+    ORDER BY created_at DESC
+    `,
+    /**
    * findById - Buscar usuario por ID
    * 
    * Descripción: Obtiene un usuario específico por su ID
@@ -48,11 +49,12 @@ export const UsersQueries = {
    * 
    * NOTA: NO incluyas password_hash en el resultado
    */
-  findById: `
-    
-  `,
-
-  /**
+    findById: `
+    SELECT id, username, email, full_name, role, is_active, created_at, last_login
+    FROM users
+    WHERE id = $1
+    `,
+    /**
    * findByUsername - Buscar usuario por username (para autenticación)
    * 
    * Descripción: Busca un usuario por su nombre de usuario
@@ -61,22 +63,24 @@ export const UsersQueries = {
    * 
    * IMPORTANTE: Esta query SÍ debe incluir password_hash porque se usa para login
    */
-  findByUsername: `
-    
-  `,
-
-  /**
+    findByUsername: `
+    SELECT id, username, email, password_hash, full_name, role, is_active
+    FROM users
+    WHERE username = $1
+    `,
+    /**
    * findByEmail - Buscar usuario por email
    * 
    * Descripción: Busca un usuario por su correo electrónico
    * Parámetros: $1 = email (string)
    * Debe retornar: id, username, email, full_name, role, is_active
    */
-  findByEmail: `
-    
-  `,
-
-  /**
+    findByEmail: `
+    SELECT id, username, email, full_name, role, is_active
+    FROM users
+    WHERE email = $1
+    `,
+    /**
    * create - Crear nuevo usuario
    * 
    * Descripción: Inserta un nuevo usuario en la base de datos
@@ -90,11 +94,12 @@ export const UsersQueries = {
    * Debe retornar: id, username, email, full_name, role, is_active, created_at
    * Usa: RETURNING para devolver el registro insertado
    */
-  create: `
-    
-  `,
-
-  /**
+    create: `
+    INSERT INTO users (username, email, password_hash, full_name, role)
+    VALUES ($1, $2, $3, $4, $5)
+    RETURNING id, username, email, full_name, role, is_active, created_at
+    `,
+    /**
    * update - Actualizar datos de usuario
    * 
    * Descripción: Actualiza la información de un usuario existente
@@ -108,11 +113,13 @@ export const UsersQueries = {
    * Debe retornar: id, username, email, full_name, role, is_active, updated_at
    * Usa: RETURNING para devolver el registro actualizado
    */
-  update: `
-    
-  `,
-
-  /**
+    update: ` 
+    UPDATE users
+    SET email = $2, full_name = $3, role = $4, is_active = $5, updated_at = CURRENT_TIMESTAMP
+    WHERE id = $1
+    RETURNING id, username, email, full_name, role, is_active, updated_at
+    `,
+    /**
    * updatePassword - Cambiar contraseña de usuario
    * 
    * Descripción: Actualiza solo el password_hash de un usuario
@@ -123,11 +130,13 @@ export const UsersQueries = {
    * Debe retornar: id, username, email
    * Usa: RETURNING
    */
-  updatePassword: `
-    
-  `,
-
-  /**
+    updatePassword: `
+    UPDATE users
+    SET password_hash = $2, updated_at = CURRENT_TIMESTAMP
+    WHERE id = $1
+    RETURNING id, username, email  
+    `,
+    /**
    * updateLastLogin - Actualizar timestamp de último login
    * 
    * Descripción: Actualiza el campo last_login con la fecha/hora actual
@@ -138,11 +147,13 @@ export const UsersQueries = {
    * Usa: CURRENT_TIMESTAMP para establecer la fecha actual
    * Usa: RETURNING
    */
-  updateLastLogin: `
-    
-  `,
-
-  /**
+    updateLastLogin: `
+    UPDATE users
+    SET last_login = CURRENT_TIMESTAMP
+    WHERE id = $1
+    RETURNING id, last_login
+    `,
+    /**
    * deactivate - Desactivar usuario
    * 
    * Descripción: Marca un usuario como inactivo (is_active = false)
@@ -152,11 +163,13 @@ export const UsersQueries = {
    * Debe retornar: id, username, is_active
    * Usa: RETURNING
    */
-  deactivate: `
-    
-  `,
-
-  /**
+    deactivate: `
+    UPDATE users
+    SET is_active = false, updated_at = CURRENT_TIMESTAMP
+    WHERE id = $1
+    RETURNING id, username, is_active
+    `,
+    /**
    * delete - Eliminar usuario permanentemente
    * 
    * Descripción: Elimina un usuario de la base de datos
@@ -166,11 +179,12 @@ export const UsersQueries = {
    * Debe retornar: id
    * Usa: RETURNING
    */
-  delete: `
-    
-  `,
-
-  /**
+    delete: `
+    DELETE FROM users
+    WHERE id = $1
+    RETURNING id
+    `,
+    /**
    * findByRole - Buscar usuarios por rol
    * 
    * Descripción: Filtra usuarios por su rol (admin, manager, employee)
@@ -180,11 +194,13 @@ export const UsersQueries = {
    * Debe retornar: id, username, email, full_name, role, is_active
    * Ordenar por: full_name ascendente (orden alfabético)
    */
-  findByRole: `
-    
-  `,
-
-  /**
+    findByRole: `
+    SELECT id, username, email, full_name, role, is_active
+    FROM users
+    WHERE role = $1
+    ORDER BY full_name ASC
+    `,
+    /**
    * countByRole - Contar usuarios por rol (estadísticas)
    * 
    * Descripción: Agrupa usuarios por rol y cuenta cuántos hay de cada tipo
@@ -194,11 +210,13 @@ export const UsersQueries = {
    * Usa: GROUP BY y COUNT(*)
    * Ordenar por: count descendente (mayor cantidad primero)
    */
-  countByRole: `
-    
-  `,
-
-  /**
+    countByRole: `
+    SELECT role, COUNT(*) AS count
+    FROM users
+    GROUP BY role
+    ORDER BY count DESC    
+    `,
+    /**
    * search - Buscar usuarios por nombre o email
    * 
    * Descripción: Búsqueda flexible por nombre completo o email
@@ -212,7 +230,10 @@ export const UsersQueries = {
    * 
    * Ejemplo: Si $1 = '%juan%', debe buscar usuarios cuyo nombre o email contenga 'juan'
    */
-  search: `
-    
-  `,
+    search: `
+    SELECT id, username, email, full_name, role
+    FROM users
+    WHERE full_name ILIKE $1 OR email ILIKE $1
+    ORDER BY full_name ASC
+    `,
 };
