@@ -1,6 +1,6 @@
 /**
  * =====================================================
- * QUERIES DE CATEGORÍAS - PARA COMPLETAR
+ * QUERIES DE CATEGORÍAS - COMPLETADO
  * =====================================================
  */
 
@@ -13,7 +13,10 @@ export const CategoriesQueries = {
    * Orden: Por name ascendente
    */
   findAll: `
-    -- TODO: Escribe tu consulta aquí
+    SELECT id, name, description, parent_id, is_active, created_at
+    FROM categories
+    WHERE is_active = true
+    ORDER BY name ASC
   `,
 
   /**
@@ -24,7 +27,9 @@ export const CategoriesQueries = {
    * Retorna: id, name, description, parent_id, is_active, created_at, updated_at
    */
   findById: `
-    -- TODO: Escribe tu consulta aquí
+    SELECT id, name, description, parent_id, is_active, created_at, updated_at
+    FROM categories
+    WHERE id = $1
   `,
 
   /**
@@ -33,18 +38,27 @@ export const CategoriesQueries = {
    * Parámetros: ninguno
    * Tablas: categories (self-join)
    * Retorna: 
-   *   - c.id AS id
-   *   - c.name AS name
-   *   - c.description
-   *   - c.parent_id
-   *   - parent.name AS parent_name
-   *   - c.is_active
+   * - c.id AS id
+   * - c.name AS name
+   * - c.description
+   * - c.parent_id
+   * - parent.name AS parent_name
+   * - c.is_active
    * Join: LEFT JOIN con categories como parent
    * Orden: Por c.name ascendente
    */
   findAllWithParent: `
-    -- TODO: Escribe tu consulta aquí
-    -- Pista: Usa LEFT JOIN categories parent ON c.parent_id = parent.id
+    SELECT 
+      c.id, 
+      c.name, 
+      c.description, 
+      c.parent_id, 
+      parent.name AS parent_name, 
+      c.is_active
+    FROM categories c
+    LEFT JOIN categories parent ON c.parent_id = parent.id
+    WHERE c.is_active = true
+    ORDER BY c.name ASC
   `,
 
   /**
@@ -57,7 +71,10 @@ export const CategoriesQueries = {
    * Orden: Por name ascendente
    */
   findRootCategories: `
-    -- TODO: Escribe tu consulta aquí
+    SELECT id, name, description, is_active
+    FROM categories
+    WHERE parent_id IS NULL AND is_active = true
+    ORDER BY name ASC
   `,
 
   /**
@@ -70,7 +87,10 @@ export const CategoriesQueries = {
    * Orden: Por name ascendente
    */
   findByParent: `
-    -- TODO: Escribe tu consulta aquí
+    SELECT id, name, description, parent_id, is_active
+    FROM categories
+    WHERE parent_id = $1 AND is_active = true
+    ORDER BY name ASC
   `,
 
   /**
@@ -81,7 +101,9 @@ export const CategoriesQueries = {
    * Retorna: id, name, description, parent_id, is_active, created_at
    */
   create: `
-    -- TODO: Escribe tu consulta aquí
+    INSERT INTO categories (name, description, parent_id)
+    VALUES ($1, $2, $3)
+    RETURNING id, name, description, parent_id, is_active, created_at
   `,
 
   /**
@@ -92,7 +114,10 @@ export const CategoriesQueries = {
    * Retorna: id, name, description, parent_id, is_active, updated_at
    */
   update: `
-    -- TODO: Escribe tu consulta aquí
+    UPDATE categories
+    SET name = $2, description = $3, parent_id = $4, is_active = $5, updated_at = NOW()
+    WHERE id = $1
+    RETURNING id, name, description, parent_id, is_active, updated_at
   `,
 
   /**
@@ -103,7 +128,9 @@ export const CategoriesQueries = {
    * Retorna: id
    */
   delete: `
-    -- TODO: Escribe tu consulta aquí
+    DELETE FROM categories
+    WHERE id = $1
+    RETURNING id
   `,
 
   /**
@@ -112,16 +139,19 @@ export const CategoriesQueries = {
    * Parámetros: ninguno
    * Tablas: categories, products
    * Retorna: 
-   *   - c.id
-   *   - c.name
-   *   - COUNT(p.id) AS product_count
+   * - c.id
+   * - c.name
+   * - COUNT(p.id) AS product_count
    * Join: LEFT JOIN products
    * Agrupación: Por c.id, c.name
    * Orden: Por product_count descendente
    */
   countProducts: `
-    -- TODO: Escribe tu consulta aquí
-    -- Pista: Usa LEFT JOIN y GROUP BY
+    SELECT c.id, c.name, COUNT(p.id) AS product_count
+    FROM categories c
+    LEFT JOIN products p ON c.id = p.category_id
+    GROUP BY c.id, c.name
+    ORDER BY product_count DESC
   `,
 
   /**
@@ -130,15 +160,23 @@ export const CategoriesQueries = {
    * Parámetros: ninguno
    * Tablas: categories (self-join múltiple)
    * Retorna:
-   *   - c.id
-   *   - c.name AS category_name
-   *   - parent.name AS parent_name
-   *   - CASE para construir la ruta
+   * - c.id
+   * - c.name AS category_name
+   * - parent.name AS parent_name
+   * - CASE para construir la ruta
    * Orden: Por la ruta completa
    */
   findHierarchy: `
-    -- TODO: Escribe tu consulta aquí (AVANZADO)
-    -- Pista: Usa CASE WHEN para construir la ruta jerárquica
-    -- Ejemplo de resultado: "Electrónica > Computadoras"
+    SELECT 
+      c.id, 
+      c.name AS category_name, 
+      parent.name AS parent_name,
+      CASE 
+        WHEN parent.name IS NULL THEN c.name
+        ELSE CONCAT(parent.name, ' > ', c.name)
+      END AS full_path
+    FROM categories c
+    LEFT JOIN categories parent ON c.parent_id = parent.id
+    ORDER BY full_path ASC
   `,
 };
