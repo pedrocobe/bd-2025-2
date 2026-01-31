@@ -1,218 +1,393 @@
 -- =====================================================
 -- TRIGGERS - E-COMMERCE EXAM
 -- =====================================================
--- INSTRUCCIONES:
--- 1. Crea 9 triggers con sus funciones asociadas
--- 2. Cada trigger automatiza una operación específica
--- 3. Usa CREATE OR REPLACE FUNCTION para la función
--- 4. Usa CREATE TRIGGER para el trigger
--- 5. Especifica el momento: BEFORE o AFTER
--- 6. Especifica la operación: INSERT, UPDATE, DELETE
--- 7. Usa FOR EACH ROW para triggers a nivel de fila
+-- Este archivo contiene todos los triggers necesarios para automatizar
+-- acciones en la base de datos del sistema de e-commerce
 -- =====================================================
 
--- TRIGGER 1: update_updated_at
--- Descripción: Actualiza automáticamente el campo updated_at cuando se modifica un registro
--- Aplica a: users, categories, products, customers, orders
--- Momento: BEFORE UPDATE
---
--- Función:
--- - Crea una función update_updated_at_column()
--- - RETURNS TRIGGER
--- - Asigna NEW.updated_at = CURRENT_TIMESTAMP
--- - Retorna NEW
---
--- Trigger:
--- - Crea un trigger para cada tabla mencionada
--- - Usa DROP TRIGGER IF EXISTS antes de crear
--- - BEFORE UPDATE ON [tabla]
--- - FOR EACH ROW EXECUTE FUNCTION update_updated_at_column()
---
--- TODO: Escribe la función y los 5 triggers aquí
+-- =====================================================
+-- TRIGGER 1: Actualizar totales de pedido automáticamente
+-- =====================================================
+-- Descripción: Cuando se inserta, actualiza o elimina un order_item,
+-- recalcula automáticamente el subtotal, tax y total del pedido
+SET client_encoding = 'UTF8';
 
+CREATE OR REPLACE FUNCTION update_order_totals()
+RETURNS TRIGGER AS $$
+DECLARE
+    v_subtotal DECIMAL(10,2);
+    v_tax DECIMAL(10,2);
+    v_shipping DECIMAL(10,2);
+    v_total DECIMAL(10,2);
+BEGIN
+    -- Obtener el order_id (puede venir de NEW o OLD dependiendo de la operación)
+    DECLARE
+        v_order_id INTEGER;
+    BEGIN
+        IF TG_OP = 'DELETE' THEN
+            v_order_id := OLD.order_id;
+        ELSE
+            v_order_id := NEW.order_id;
+        END IF;
 
+        -- Calcular subtotal de todos los items del pedido
+        SELECT COALESCE(SUM(subtotal), 0)
+        INTO v_subtotal
+        FROM order_items
+        WHERE order_id = v_order_id;
 
--- TRIGGER 2: validate_product_stock
--- Descripción: Valida que hay stock suficiente ANTES de insertar un order_item
--- Aplica a: order_items
--- Momento: BEFORE INSERT
---
--- Función validate_product_stock():
--- - Declara variable v_available_stock INTEGER
--- - SELECT stock_quantity INTO v_available_stock FROM products WHERE id = NEW.product_id
--- - IF v_available_stock < NEW.quantity THEN
---     RAISE EXCEPTION 'Stock insuficiente...'
--- - Retorna NEW
---
--- Trigger check_product_stock:
--- - BEFORE INSERT ON order_items
--- - FOR EACH ROW
---
--- TODO: Escribe la función y el trigger aquí
+        -- Obtener el shipping_cost del pedido
+        SELECT shipping_cost
+        INTO v_shipping
+        FROM orders
+        WHERE id = v_order_id;
 
+        -- Calcular tax (12% del subtotal - ejemplo para Ecuador)
+        v_tax := ROUND(v_subtotal * 0.12, 2);
 
+        -- Calcular total
+        v_total := v_subtotal + v_tax + v_shipping;
 
--- TRIGGER 3: update_product_stock
--- Descripción: Actualiza el inventario cuando se insertan o eliminan order_items
--- Aplica a: order_items
--- Momento: AFTER INSERT OR DELETE
---
--- Función update_product_stock():
--- - IF TG_OP = 'INSERT' THEN
---     UPDATE products SET stock_quantity = stock_quantity - NEW.quantity WHERE id = NEW.product_id
---     RETURN NEW
--- - ELSIF TG_OP = 'DELETE' THEN
---     UPDATE products SET stock_quantity = stock_quantity + OLD.quantity WHERE id = OLD.product_id
---     RETURN OLD
--- - Retorna NULL si no es ninguno
---
--- Trigger update_stock_on_order_item:
--- - AFTER INSERT OR DELETE ON order_items
--- - FOR EACH ROW
---
--- TODO: Escribe la función y el trigger aquí
+        -- Actualizar el pedido
+        UPDATE orders
+        SET 
+            subtotal = v_subtotal,
+            tax = v_tax,
+            total = v_total,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = v_order_id;
+    END;
 
+    RETURN NULL; -- Para triggers AFTER
+END;
+$$ LANGUAGE plpgsql;
 
+-- Aplicar el trigger a order_items
+CREATE TRIGGER trg_order_items_update_totals
+    AFTER INSERT OR UPDATE OR DELETE ON order_items
+    FOR EACH ROW
+    EXECUTE FUNCTION update_order_totals();
 
--- TRIGGER 4: calculate_order_item_subtotal
--- Descripción: Calcula automáticamente el subtotal de un order_item (quantity * unit_price)
--- Aplica a: order_items
--- Momento: BEFORE INSERT
---
--- Función calculate_order_item_subtotal():
--- - NEW.subtotal := NEW.quantity * NEW.unit_price
--- - Retorna NEW
---
--- Trigger set_order_item_subtotal:
--- - BEFORE INSERT ON order_items
--- - FOR EACH ROW
---
--- TODO: Escribe la función y el trigger aquí
-
-
-
--- TRIGGER 5: update_order_totals
--- Descripción: Recalcula subtotal, tax y total de un pedido cuando se agregan/eliminan items
--- Aplica a: order_items
--- Momento: AFTER INSERT OR DELETE
---
--- Función update_order_totals():
--- - Declara variables: v_order_id, v_subtotal, v_tax, v_shipping, v_total
--- - Determina v_order_id según TG_OP (NEW.order_id o OLD.order_id)
--- - SELECT SUM(subtotal) INTO v_subtotal FROM order_items WHERE order_id = v_order_id
--- - Calcula v_tax = v_subtotal * 0.16 (16% de impuesto)
--- - SELECT shipping_cost INTO v_shipping FROM orders WHERE id = v_order_id
--- - Calcula v_total = v_subtotal + v_tax + v_shipping
--- - UPDATE orders SET subtotal=..., tax=..., total=... WHERE id = v_order_id
--- - Retorna OLD o NEW según TG_OP
---
--- Trigger update_order_totals_trigger:
--- - AFTER INSERT OR DELETE ON order_items
--- - FOR EACH ROW
---
--- TODO: Escribe la función y el trigger aquí
-
-
-
--- TRIGGER 6: audit_product_changes
--- Descripción: Registra en audit_log todos los cambios (INSERT/UPDATE/DELETE) en productos
--- Aplica a: products
--- Momento: AFTER INSERT OR UPDATE OR DELETE
---
--- Función audit_product_changes():
--- - IF TG_OP = 'DELETE' THEN
---     INSERT INTO audit_log (table_name, record_id, action, old_values, changed_at)
---     VALUES ('products', OLD.id, 'DELETE', row_to_json(OLD), CURRENT_TIMESTAMP)
---     RETURN OLD
--- - ELSIF TG_OP = 'UPDATE' THEN
---     INSERT INTO audit_log (table_name, record_id, action, old_values, new_values, changed_at)
---     VALUES ('products', NEW.id, 'UPDATE', row_to_json(OLD), row_to_json(NEW), CURRENT_TIMESTAMP)
---     RETURN NEW
--- - ELSIF TG_OP = 'INSERT' THEN
---     INSERT INTO audit_log (table_name, record_id, action, new_values, changed_at)
---     VALUES ('products', NEW.id, 'INSERT', row_to_json(NEW), CURRENT_TIMESTAMP)
---     RETURN NEW
--- - Retorna NULL si no aplica
---
--- NOTA: Asegúrate que la tabla audit_log existe en tu schema.sql
---
--- Trigger audit_products:
--- - AFTER INSERT OR UPDATE OR DELETE ON products
--- - FOR EACH ROW
---
--- TODO: Escribe la función y el trigger aquí
-
-
-
--- TRIGGER 7: prevent_negative_price
--- Descripción: Valida que price y cost sean mayores a cero
--- Aplica a: products
--- Momento: BEFORE INSERT OR UPDATE
---
--- Función prevent_negative_price():
--- - IF NEW.price <= 0 OR NEW.cost <= 0 THEN
---     RAISE EXCEPTION 'El precio y el costo deben ser mayores a cero'
--- - Retorna NEW
---
--- Trigger check_product_price:
--- - BEFORE INSERT OR UPDATE ON products
--- - FOR EACH ROW
---
--- TODO: Escribe la función y el trigger aquí
-
-
-
--- TRIGGER 8: update_customer_stats_on_order
--- Descripción: Actualiza estadísticas del cliente cuando se crea o cambia estado de un pedido
--- Aplica a: orders
--- Momento: AFTER INSERT OR UPDATE
---
--- Función update_customer_stats_on_order():
--- - IF TG_OP = 'UPDATE' AND OLD.status != NEW.status THEN
---     PERFORM update_customer_statistics(NEW.customer_id)
--- - ELSIF TG_OP = 'INSERT' THEN
---     PERFORM update_customer_statistics(NEW.customer_id)
--- - Retorna NEW
---
--- NOTA: Usa PERFORM en lugar de SELECT cuando llamas a una función sin capturar resultado
--- NOTA: Esta función requiere que hayas creado update_customer_statistics() en functions.sql
---
--- Trigger update_customer_stats:
--- - AFTER INSERT OR UPDATE ON orders
--- - FOR EACH ROW
---
--- TODO: Escribe la función y el trigger aquí
-
-
-
--- TRIGGER 9: set_order_number
--- Descripción: Genera automáticamente un número de pedido único (ej: ORD-2025-0001)
--- Aplica a: orders
--- Momento: BEFORE INSERT
---
--- Función set_order_number():
--- - Declara variables: v_year, v_sequence, v_order_number
--- - IF NEW.order_number IS NULL OR NEW.order_number = '' THEN
---     v_year := EXTRACT(YEAR FROM CURRENT_DATE)::VARCHAR
---     SELECT COUNT(*) + 1 INTO v_sequence FROM orders WHERE EXTRACT(YEAR FROM created_at) = EXTRACT(YEAR FROM CURRENT_DATE)
---     v_order_number := 'ORD-' || v_year || '-' || LPAD(v_sequence::VARCHAR, 4, '0')
---     NEW.order_number := v_order_number
--- - Retorna NEW
---
--- NOTA: LPAD(v_sequence::VARCHAR, 4, '0') rellena con ceros a la izquierda (ej: 0001, 0042, 1234)
---
--- Trigger generate_order_number:
--- - BEFORE INSERT ON orders
--- - FOR EACH ROW
---
--- TODO: Escribe la función y el trigger aquí
-
+COMMENT ON TRIGGER trg_order_items_update_totals ON order_items IS 
+'Actualiza automáticamente los totales del pedido cuando se modifican los items';
 
 
 -- =====================================================
--- VERIFICACIÓN (opcional)
+-- TRIGGER 2: Actualizar estadísticas de clientes
 -- =====================================================
--- Después de crear tus triggers, puedes verificar que existen con:
--- SELECT trigger_name, event_manipulation, event_object_table 
--- FROM information_schema.triggers 
--- WHERE trigger_schema = 'public';
+-- Descripción: Cuando un pedido cambia de estado, actualiza
+-- total_spent y order_count del cliente
+
+CREATE OR REPLACE FUNCTION update_customer_statistics()
+RETURNS TRIGGER AS $$
+BEGIN
+    -- Solo actualizar si el pedido NO está cancelado
+    UPDATE customers
+    SET 
+        total_spent = (
+            SELECT COALESCE(SUM(total), 0)
+            FROM orders
+            WHERE customer_id = NEW.customer_id 
+            AND status != 'cancelled'
+        ),
+        order_count = (
+            SELECT COUNT(*)
+            FROM orders
+            WHERE customer_id = NEW.customer_id 
+            AND status != 'cancelled'
+        ),
+        updated_at = CURRENT_TIMESTAMP
+    WHERE id = NEW.customer_id;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Aplicar el trigger a orders cuando se actualiza el status
+CREATE TRIGGER trg_orders_update_customer_stats
+    AFTER INSERT OR UPDATE OF status ON orders
+    FOR EACH ROW
+    EXECUTE FUNCTION update_customer_statistics();
+
+COMMENT ON TRIGGER trg_orders_update_customer_stats ON orders IS 
+'Actualiza las estadísticas del cliente cuando cambia el estado del pedido';
+
+
+-- =====================================================
+-- TRIGGER 3: Validar stock antes de crear order_item
+-- =====================================================
+-- Descripción: Verifica que haya suficiente stock antes de
+-- agregar un producto a un pedido
+
+CREATE OR REPLACE FUNCTION validate_stock_before_order()
+RETURNS TRIGGER AS $$
+DECLARE
+    v_available_stock INTEGER;
+    v_product_name VARCHAR(200);
+BEGIN
+    -- Obtener el stock disponible del producto
+    SELECT stock_quantity, name
+    INTO v_available_stock, v_product_name
+    FROM products
+    WHERE id = NEW.product_id;
+
+    -- Validar que hay suficiente stock
+    IF v_available_stock < NEW.quantity THEN
+        RAISE EXCEPTION 'Stock insuficiente para el producto "%". Disponible: %, Solicitado: %',
+            v_product_name, v_available_stock, NEW.quantity;
+    END IF;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Aplicar el trigger BEFORE INSERT en order_items
+CREATE TRIGGER trg_order_items_validate_stock
+    BEFORE INSERT ON order_items
+    FOR EACH ROW
+    EXECUTE FUNCTION validate_stock_before_order();
+
+COMMENT ON TRIGGER trg_order_items_validate_stock ON order_items IS 
+'Valida que haya stock suficiente antes de agregar un item al pedido';
+
+
+-- =====================================================
+-- TRIGGER 4: Reducir stock al confirmar pedido
+-- =====================================================
+-- Descripción: Cuando un pedido pasa a 'processing', reduce
+-- el stock de los productos
+
+CREATE OR REPLACE FUNCTION reduce_stock_on_processing()
+RETURNS TRIGGER AS $$
+BEGIN
+    -- Solo ejecutar si el status cambió a 'processing'
+    IF NEW.status = 'processing' AND (OLD.status IS NULL OR OLD.status != 'processing') THEN
+        
+        -- Reducir el stock de todos los productos del pedido
+        UPDATE products p
+        SET stock_quantity = stock_quantity - oi.quantity
+        FROM order_items oi
+        WHERE oi.order_id = NEW.id
+        AND p.id = oi.product_id;
+        
+    END IF;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Aplicar el trigger a orders
+CREATE TRIGGER trg_orders_reduce_stock
+    AFTER UPDATE OF status ON orders
+    FOR EACH ROW
+    EXECUTE FUNCTION reduce_stock_on_processing();
+
+COMMENT ON TRIGGER trg_orders_reduce_stock ON orders IS 
+'Reduce el stock de productos cuando el pedido pasa a estado processing';
+
+
+-- =====================================================
+-- TRIGGER 5: Restaurar stock al cancelar pedido
+-- =====================================================
+-- Descripción: Cuando un pedido se cancela, devuelve el stock
+-- de los productos al inventario
+
+CREATE OR REPLACE FUNCTION restore_stock_on_cancel()
+RETURNS TRIGGER AS $$
+BEGIN
+    -- Solo ejecutar si el status cambió a 'cancelled' y antes estaba en 'processing'
+    IF NEW.status = 'cancelled' AND OLD.status = 'processing' THEN
+        
+        -- Restaurar el stock de todos los productos del pedido
+        UPDATE products p
+        SET stock_quantity = stock_quantity + oi.quantity
+        FROM order_items oi
+        WHERE oi.order_id = NEW.id
+        AND p.id = oi.product_id;
+        
+    END IF;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Aplicar el trigger a orders
+CREATE TRIGGER trg_orders_restore_stock
+    AFTER UPDATE OF status ON orders
+    FOR EACH ROW
+    EXECUTE FUNCTION restore_stock_on_cancel();
+
+COMMENT ON TRIGGER trg_orders_restore_stock ON orders IS 
+'Restaura el stock cuando un pedido se cancela';
+
+
+-- =====================================================
+-- TRIGGER 6: Auditoría automática de cambios en productos
+-- =====================================================
+-- Descripción: Registra en audit_log los cambios en productos
+
+CREATE OR REPLACE FUNCTION audit_product_changes()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF TG_OP = 'INSERT' THEN
+        INSERT INTO audit_log (table_name, record_id, action, new_data, changed_at)
+        VALUES ('products', NEW.id, 'INSERT', row_to_json(NEW), CURRENT_TIMESTAMP);
+        
+    ELSIF TG_OP = 'UPDATE' THEN
+        INSERT INTO audit_log (table_name, record_id, action, old_data, new_data, changed_by, changed_at)
+        VALUES ('products', NEW.id, 'UPDATE', row_to_json(OLD), row_to_json(NEW), NEW.created_by, CURRENT_TIMESTAMP);
+        
+    ELSIF TG_OP = 'DELETE' THEN
+        INSERT INTO audit_log (table_name, record_id, action, old_data, changed_at)
+        VALUES ('products', OLD.id, 'DELETE', row_to_json(OLD), CURRENT_TIMESTAMP);
+    END IF;
+
+    RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Aplicar el trigger a products
+CREATE TRIGGER trg_products_audit
+    AFTER INSERT OR UPDATE OR DELETE ON products
+    FOR EACH ROW
+    EXECUTE FUNCTION audit_product_changes();
+
+COMMENT ON TRIGGER trg_products_audit ON products IS 
+'Registra todos los cambios en productos en la tabla de auditoría';
+
+
+-- =====================================================
+-- TRIGGER 7: Calcular subtotal automáticamente en order_items
+-- =====================================================
+-- Descripción: Calcula el subtotal del item antes de insertar
+
+CREATE OR REPLACE FUNCTION calculate_order_item_subtotal()
+RETURNS TRIGGER AS $$
+BEGIN
+    -- Calcular subtotal = quantity * unit_price
+    NEW.subtotal := NEW.quantity * NEW.unit_price;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Aplicar el trigger BEFORE INSERT/UPDATE en order_items
+CREATE TRIGGER trg_order_items_calculate_subtotal
+    BEFORE INSERT OR UPDATE ON order_items
+    FOR EACH ROW
+    EXECUTE FUNCTION calculate_order_item_subtotal();
+
+COMMENT ON TRIGGER trg_order_items_calculate_subtotal ON order_items IS 
+'Calcula automáticamente el subtotal del item';
+
+
+-- =====================================================
+-- TRIGGER 8: Prevenir eliminación de categorías con productos
+-- =====================================================
+-- Descripción: No permite eliminar una categoría si tiene productos asociados
+
+CREATE OR REPLACE FUNCTION prevent_category_delete_with_products()
+RETURNS TRIGGER AS $$
+DECLARE
+    v_product_count INTEGER;
+BEGIN
+    -- Contar productos en esta categoría
+    SELECT COUNT(*)
+    INTO v_product_count
+    FROM products
+    WHERE category_id = OLD.id;
+
+    IF v_product_count > 0 THEN
+        RAISE EXCEPTION 'No se puede eliminar la categoría "%". Tiene % producto(s) asociado(s)',
+            OLD.name, v_product_count;
+    END IF;
+
+    RETURN OLD;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Aplicar el trigger BEFORE DELETE en categories
+CREATE TRIGGER trg_categories_prevent_delete
+    BEFORE DELETE ON categories
+    FOR EACH ROW
+    EXECUTE FUNCTION prevent_category_delete_with_products();
+
+COMMENT ON TRIGGER trg_categories_prevent_delete ON categories IS 
+'Previene la eliminación de categorías que tienen productos asociados';
+
+
+-- =====================================================
+-- TRIGGER 9: Generar número de orden automáticamente
+-- =====================================================
+-- Descripción: Genera un número de orden único al crear un pedido
+
+CREATE OR REPLACE FUNCTION generate_order_number()
+RETURNS TRIGGER AS $$
+BEGIN
+    -- Si no viene order_number, generarlo
+    IF NEW.order_number IS NULL OR NEW.order_number = '' THEN
+        NEW.order_number := 'ORD-' || 
+                           TO_CHAR(CURRENT_DATE, 'YYYYMMDD') || '-' || 
+                           LPAD(nextval('orders_id_seq')::TEXT, 6, '0');
+    END IF;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Aplicar el trigger BEFORE INSERT en orders
+CREATE TRIGGER trg_orders_generate_number
+    BEFORE INSERT ON orders
+    FOR EACH ROW
+    EXECUTE FUNCTION generate_order_number();
+
+COMMENT ON TRIGGER trg_orders_generate_number ON orders IS 
+'Genera automáticamente un número de orden único';
+
+
+-- =====================================================
+-- TRIGGER 10: Validar email único para clientes
+-- =====================================================
+-- Descripción: Previene duplicados de email en clientes
+
+CREATE OR REPLACE FUNCTION validate_customer_email_unique()
+RETURNS TRIGGER AS $$
+DECLARE
+    v_count INTEGER;
+BEGIN
+    SELECT COUNT(*)
+    INTO v_count
+    FROM customers
+    WHERE email = NEW.email
+    AND id != COALESCE(NEW.id, 0);
+
+    IF v_count > 0 THEN
+        RAISE EXCEPTION 'El email "%" ya está registrado para otro cliente', NEW.email;
+    END IF;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Aplicar el trigger BEFORE INSERT/UPDATE en customers
+CREATE TRIGGER trg_customers_validate_email
+    BEFORE INSERT OR UPDATE ON customers
+    FOR EACH ROW
+    EXECUTE FUNCTION validate_customer_email_unique();
+
+COMMENT ON TRIGGER trg_customers_validate_email ON customers IS 
+'Valida que el email del cliente sea único';
+
+
+-- =====================================================
+-- FIN DE TRIGGERS
+-- =====================================================
+
+-- Verificación: Listar todos los triggers creados
+SELECT 
+    trigger_name,
+    event_object_table AS table_name,
+    action_timing,
+    event_manipulation AS event
+FROM information_schema.triggers
+WHERE trigger_schema = 'public'
+ORDER BY event_object_table, trigger_name;
