@@ -227,3 +227,4 @@ SELECT setval('customers_id_seq', (SELECT MAX(id) FROM customers));
 SELECT setval('orders_id_seq', (SELECT MAX(id) FROM orders));
 SELECT setval('order_items_id_seq', (SELECT MAX(id) FROM order_items));
 
+/* actualizacion 30/01/2026 07:21*/

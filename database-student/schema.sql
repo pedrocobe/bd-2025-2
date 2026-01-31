@@ -238,4 +238,4 @@ COMMENT ON TABLE order_items IS 'Detalle de items por pedido';
 COMMENT ON TABLE audit_log IS 'Bitácora de auditoría de cambios (productos)';
 
 
-/* actualizacion 30/01/2026 */
+/* actualizacion 30/01/2026 07:21*/

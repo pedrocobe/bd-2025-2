@@ -181,3 +181,4 @@ export const CategoriesQueries = {
   `,
 };
 
+/* actualizacion 30/01/2026 07:21*/

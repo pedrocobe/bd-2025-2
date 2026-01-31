@@ -479,4 +479,4 @@ EXECUTE FUNCTION set_order_number();
 -- WHERE trigger_schema = 'public';
 
 
-/* actualizacion 30/01/2026 */
+/* actualizacion 30/01/2026 07:21*/

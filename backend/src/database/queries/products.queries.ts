@@ -314,5 +314,5 @@ export const ProductsQueries = {
   `,
 };
 
-/* actualizacion 30/01/2026 */
+/* actualizacion 30/01/2026 07:21*/
 

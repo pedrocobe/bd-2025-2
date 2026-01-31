@@ -216,4 +216,4 @@ REVOKE INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public FROM db_readonly;
 -- WHERE grantee = 'db_admin';
 
 
-/* actualizacion 30/01/2026 */
+/* actualizacion 30/01/2026 07:21*/
