@@ -38,7 +38,17 @@ export const ReportsQueries = {
    * Ordenar por: sale_date ascendente
    */
   dailySales: `
-    
+    SELECT DATE(created_at) AS sale_date,
+           COUNT(*) AS order_count,
+           SUM(total) AS total_sales,
+           AVG(total) AS avg_order_value,
+           SUM(subtotal) AS subtotal,
+           SUM(tax) AS total_tax,
+           SUM(shipping_cost) AS total_shipping
+    FROM orders
+    WHERE created_at BETWEEN $1 AND $2 AND status != 'cancelled'
+    GROUP BY DATE(created_at)
+    ORDER BY sale_date ASC
   `,
 
   /**
@@ -60,7 +70,15 @@ export const ReportsQueries = {
    * Ordenar por: month_num ascendente
    */
   monthlySales: `
-    
+    SELECT EXTRACT(MONTH FROM created_at)::INTEGER AS month_num,
+           TO_CHAR(created_at, 'Month') AS month_name,
+           COUNT(*) AS order_count,
+           SUM(total) AS total_sales,
+           AVG(total) AS avg_order_value
+    FROM orders
+    WHERE EXTRACT(YEAR FROM created_at) = $1 AND status != 'cancelled'
+    GROUP BY EXTRACT(MONTH FROM created_at), TO_CHAR(created_at, 'Month')
+    ORDER BY month_num ASC
   `,
 
   /**
@@ -89,7 +107,20 @@ export const ReportsQueries = {
    * Usa: LIMIT $1
    */
   topSellingProducts: `
-    
+    SELECT p.id, p.name, p.sku, p.price,
+           c.name AS category_name,
+           SUM(oi.quantity) AS total_quantity_sold,
+           COUNT(DISTINCT o.id) AS order_count,
+           SUM(oi.subtotal) AS total_revenue,
+           AVG(oi.unit_price) AS avg_selling_price
+    FROM order_items oi
+    INNER JOIN products p ON oi.product_id = p.id
+    INNER JOIN orders o ON oi.order_id = o.id
+    LEFT JOIN categories c ON p.category_id = c.id
+    WHERE o.status != 'cancelled'
+    GROUP BY p.id, p.name, p.sku, p.price, c.name
+    ORDER BY total_quantity_sold DESC
+    LIMIT $1
   `,
 
   /**
@@ -116,7 +147,18 @@ export const ReportsQueries = {
    * NOTA: Usa COALESCE para manejar clientes sin pedidos
    */
   topCustomers: `
-    
+    SELECT c.id,
+           c.first_name || ' ' || c.last_name AS customer_name,
+           c.email, c.city, c.country,
+           COUNT(o.id) AS order_count,
+           COALESCE(SUM(o.total), 0) AS lifetime_value,
+           COALESCE(AVG(o.total), 0) AS avg_order_value,
+           MAX(o.created_at) AS last_order_date
+    FROM customers c
+    LEFT JOIN orders o ON c.id = o.customer_id AND o.status != 'cancelled'
+    GROUP BY c.id, c.first_name, c.last_name, c.email, c.city, c.country
+    ORDER BY lifetime_value DESC
+    LIMIT $1
   `,
 
   /**
@@ -139,7 +181,19 @@ export const ReportsQueries = {
    * Ordenar por: total_revenue descendente
    */
   salesByCategory: `
-    
+      -- Variante bd-3: usar subquery para revenue por categoría
+      SELECT c.id AS category_id,
+        c.name AS category_name,
+        COUNT(DISTINCT p.id) AS product_count,
+        COALESCE(SUM(oi.quantity), 0) AS units_sold,
+        COALESCE(SUM(oi.subtotal), 0) AS total_revenue,
+        COALESCE(AVG(oi.unit_price), 0) AS avg_price
+      FROM categories c
+      LEFT JOIN products p ON c.id = p.category_id
+      LEFT JOIN order_items oi ON p.id = oi.product_id
+      LEFT JOIN orders o ON oi.order_id = o.id AND o.status != 'cancelled'
+      GROUP BY c.id, c.name
+      ORDER BY total_revenue DESC
   `,
 
   /**
@@ -164,7 +218,20 @@ export const ReportsQueries = {
    * PISTA: COUNT(CASE WHEN ... THEN 1 END) cuenta solo los casos que cumplen condición
    */
   inventoryAnalysis: `
-    
+      -- Variante bd-3: incluir ratio low_stock_percent
+      SELECT c.name AS category_name,
+        COUNT(p.id) AS product_count,
+        SUM(p.stock_quantity) AS total_units,
+        SUM(p.stock_quantity * p.cost) AS inventory_cost,
+        SUM(p.stock_quantity * p.price) AS inventory_value,
+        SUM(p.stock_quantity * (p.price - p.cost)) AS potential_profit,
+        COUNT(CASE WHEN p.stock_quantity < p.min_stock_level THEN 1 END) AS low_stock_items,
+        ROUND(100.0 * COUNT(CASE WHEN p.stock_quantity < p.min_stock_level THEN 1 END) / NULLIF(COUNT(p.id), 0), 2) AS low_stock_percent
+      FROM products p
+      LEFT JOIN categories c ON p.category_id = c.id
+      WHERE p.is_active = true
+      GROUP BY c.name
+      ORDER BY inventory_value DESC
   `,
 
   /**
@@ -186,7 +253,17 @@ export const ReportsQueries = {
    * Ordenar por: margin_percent descendente
    */
   profitMarginReport: `
-    
+    SELECT p.id, p.name, p.sku,
+           c.name AS category_name,
+           p.cost, p.price,
+           (p.price - p.cost) AS profit_per_unit,
+           ROUND(((p.price - p.cost) / p.price) * 100, 2) AS margin_percent,
+           p.stock_quantity,
+           (p.stock_quantity * (p.price - p.cost)) AS total_potential_profit
+    FROM products p
+    LEFT JOIN categories c ON p.category_id = c.id
+    WHERE p.is_active = true AND p.price > 0
+    ORDER BY margin_percent DESC
   `,
 
   /**
@@ -211,7 +288,17 @@ export const ReportsQueries = {
    * PISTA: NULLIF previene división por cero
    */
   salesByCity: `
-    
+    SELECT c.city, c.country,
+           COUNT(DISTINCT c.id) AS customer_count,
+           COUNT(o.id) AS order_count,
+           COALESCE(SUM(o.total), 0) AS total_revenue,
+           ROUND(COALESCE(COUNT(o.id)::NUMERIC / NULLIF(COUNT(DISTINCT c.id), 0), 0), 2) AS orders_per_customer,
+           ROUND(COALESCE(AVG(o.total), 0), 2) AS avg_order_value
+    FROM customers c
+    LEFT JOIN orders o ON c.id = o.customer_id AND o.status != 'cancelled'
+    GROUP BY c.city, c.country
+    HAVING COUNT(DISTINCT c.id) > 0
+    ORDER BY total_revenue DESC
   `,
 
   /**
@@ -236,7 +323,16 @@ export const ReportsQueries = {
    * PISTA: ($1 || ' days')::INTERVAL convierte número a intervalo de días
    */
   abandonedOrders: `
-    
+    SELECT o.id, o.order_number, o.created_at,
+           CURRENT_DATE - o.created_at::date AS days_pending,
+           o.total,
+           c.first_name || ' ' || c.last_name AS customer_name,
+           c.email
+    FROM orders o
+    INNER JOIN customers c ON o.customer_id = c.id
+    WHERE o.status = 'pending' 
+      AND o.created_at < CURRENT_DATE - ($1 || ' days')::INTERVAL
+    ORDER BY days_pending DESC
   `,
 
   /**
@@ -264,7 +360,18 @@ export const ReportsQueries = {
    * PISTA: Si no hay ventas en el período, o.id será NULL
    */
   unsoldProducts: `
-    
+    SELECT p.id, p.name, p.sku,
+           c.name AS category_name,
+           p.price, p.stock_quantity,
+           p.created_at,
+           CURRENT_DATE - p.created_at::date AS days_in_catalog
+    FROM products p
+    LEFT JOIN categories c ON p.category_id = c.id
+    LEFT JOIN order_items oi ON p.id = oi.product_id
+    LEFT JOIN orders o ON oi.order_id = o.id 
+                       AND o.created_at >= CURRENT_DATE - ($1 || ' days')::INTERVAL
+    WHERE p.is_active = true AND o.id IS NULL
+    ORDER BY days_in_catalog DESC
   `,
 
   /**
@@ -289,7 +396,18 @@ export const ReportsQueries = {
    * Ordenar por: total_sales descendente
    */
   employeePerformance: `
-    
+    SELECT u.id, u.full_name, u.role,
+           COUNT(o.id) AS orders_created,
+           COALESCE(SUM(o.total), 0) AS total_sales,
+           COALESCE(AVG(o.total), 0) AS avg_order_value,
+           COUNT(DISTINCT o.customer_id) AS unique_customers
+    FROM users u
+    LEFT JOIN orders o ON u.id = o.created_by 
+                       AND o.created_at BETWEEN $1 AND $2 
+                       AND o.status != 'cancelled'
+    WHERE u.role IN ('employee', 'manager')
+    GROUP BY u.id, u.full_name, u.role
+    ORDER BY total_sales DESC
   `,
 
   /**
@@ -320,7 +438,19 @@ export const ReportsQueries = {
    *       Usa: CASE WHEN $1 = 1 THEN 12 ELSE $1 - 1 END
    */
   salesTrend: `
+    SELECT 'Mes Actual' AS period, COUNT(*) AS order_count, SUM(total) AS total_sales
+    FROM orders
+    WHERE EXTRACT(MONTH FROM created_at) = $1
+      AND EXTRACT(YEAR FROM created_at) = $2
+      AND status != 'cancelled'
     
+    UNION ALL
+    
+    SELECT 'Mes Anterior' AS period, COUNT(*) AS order_count, SUM(total) AS total_sales
+    FROM orders
+    WHERE EXTRACT(MONTH FROM created_at) = CASE WHEN $1 = 1 THEN 12 ELSE $1 - 1 END
+      AND EXTRACT(YEAR FROM created_at) = CASE WHEN $1 = 1 THEN $2 - 1 ELSE $2 END
+      AND status != 'cancelled'
   `,
 
   /**
@@ -340,6 +470,15 @@ export const ReportsQueries = {
    * NOTA: Este query NO tiene FROM, solo subconsultas en el SELECT
    */
   dashboardMetrics: `
-    
+    SELECT 
+      (SELECT COUNT(*) FROM customers WHERE is_active = true) AS total_customers,
+      (SELECT COUNT(*) FROM products WHERE is_active = true) AS total_products,
+      (SELECT COUNT(*) FROM orders WHERE status != 'cancelled') AS total_orders,
+      (SELECT COALESCE(SUM(total), 0) FROM orders WHERE status != 'cancelled') AS total_revenue,
+      (SELECT COALESCE(AVG(total), 0) FROM orders WHERE status != 'cancelled') AS avg_order_value,
+      (SELECT COUNT(*) FROM products WHERE stock_quantity < min_stock_level) AS products_low_stock
   `,
 };
+
+
+/* actualizacion 30/01/2026 07:21*/

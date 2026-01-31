@@ -32,7 +32,13 @@ export const ProductsQueries = {
    * Ordenar por: p.created_at descendente
    */
   findAll: `
-    
+      -- Variante bd-3: usar subquery para categoría
+      SELECT p.id, p.name, p.description, p.sku, p.price, p.stock_quantity,
+        p.is_active,
+        (SELECT name FROM categories WHERE id = p.category_id) AS category_name,
+        p.category_id
+      FROM products p
+      ORDER BY p.created_at DESC
   `,
 
   /**
@@ -43,7 +49,10 @@ export const ProductsQueries = {
    * Usa: LEFT JOIN con categories
    */
   findById: `
-    
+    SELECT p.*, c.name AS category_name
+    FROM products p
+    LEFT JOIN categories c ON p.category_id = c.id
+    WHERE p.id = $1
   `,
 
   /**
@@ -54,7 +63,10 @@ export const ProductsQueries = {
    * Debe retornar: * (todos los campos)
    */
   findBySku: `
-    
+    -- Variante: evitar SELECT * y normalizar SKU a upper para búsqueda
+    SELECT id, name, description, sku, category_id, price, cost, stock_quantity, min_stock_level, is_active, created_at, updated_at
+    FROM products
+    WHERE UPPER(sku) = UPPER($1)
   `,
 
   /**
@@ -66,7 +78,10 @@ export const ProductsQueries = {
    * Ordenar por: name ascendente
    */
   findByCategory: `
-    
+    SELECT id, name, sku, price, stock_quantity, is_active
+    FROM products
+    WHERE category_id = $1 AND is_active = true
+    ORDER BY name ASC
   `,
 
   /**
@@ -81,7 +96,9 @@ export const ProductsQueries = {
    * Usa: RETURNING
    */
   create: `
-    
+    INSERT INTO products (name, description, sku, category_id, price, cost, stock_quantity, min_stock_level, created_by)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+    RETURNING *
   `,
 
   /**
@@ -96,7 +113,11 @@ export const ProductsQueries = {
    * Usa: RETURNING
    */
   update: `
-    
+    UPDATE products
+    SET name = $2, description = $3, category_id = $4, price = $5, cost = $6, 
+        stock_quantity = $7, min_stock_level = $8, is_active = $9, updated_at = CURRENT_TIMESTAMP
+    WHERE id = $1
+    RETURNING *
   `,
 
   /**
@@ -109,7 +130,10 @@ export const ProductsQueries = {
    * Usa: RETURNING
    */
   updateStock: `
-    
+    UPDATE products
+    SET stock_quantity = $2, updated_at = CURRENT_TIMESTAMP
+    WHERE id = $1
+    RETURNING id, name, sku, stock_quantity, updated_at
   `,
 
   /**
@@ -120,7 +144,9 @@ export const ProductsQueries = {
    * Usa: RETURNING
    */
   delete: `
-    
+    DELETE FROM products
+    WHERE id = $1
+    RETURNING id
   `,
 
   /**
@@ -139,7 +165,13 @@ export const ProductsQueries = {
    * Ordenar por: deficit descendente (mayor déficit primero)
    */
   findLowStock: `
-    
+    SELECT p.id, p.name, p.sku, p.stock_quantity, p.min_stock_level,
+           (p.min_stock_level - p.stock_quantity) AS deficit,
+           c.name AS category_name
+    FROM products p
+    LEFT JOIN categories c ON p.category_id = c.id
+    WHERE p.stock_quantity < p.min_stock_level AND p.is_active = true
+    ORDER BY deficit DESC
   `,
 
   /**
@@ -156,7 +188,12 @@ export const ProductsQueries = {
    * Ordenar por: p.name ascendente
    */
   search: `
-    
+    SELECT p.id, p.name, p.sku, p.price, p.stock_quantity,
+           c.name AS category_name
+    FROM products p
+    LEFT JOIN categories c ON p.category_id = c.id
+    WHERE p.name ILIKE $1 OR p.sku ILIKE $1
+    ORDER BY p.name ASC
   `,
 
   /**
@@ -180,7 +217,25 @@ export const ProductsQueries = {
    * Usa: LIMIT $1
    */
   findTopSelling: `
-    
+    -- Variante bd-3: usar subselect agregado y COALESCE
+    SELECT p.id, p.name, p.sku, p.price,
+           COALESCE( (
+             SELECT SUM(oi2.quantity) FROM order_items oi2
+             JOIN orders o2 ON oi2.order_id = o2.id
+             WHERE oi2.product_id = p.id AND (o2.status IS NULL OR o2.status != 'cancelled')
+           ), 0) AS total_sold,
+           COALESCE( (
+             SELECT COUNT(DISTINCT o3.id) FROM order_items oi3
+             JOIN orders o3 ON oi3.order_id = o3.id
+             WHERE oi3.product_id = p.id AND (o3.status IS NULL OR o3.status != 'cancelled')
+           ), 0) AS order_count
+    FROM products p
+    WHERE COALESCE( (
+      SELECT SUM(oi2.quantity) FROM order_items oi2 JOIN orders o2 ON oi2.order_id = o2.id
+      WHERE oi2.product_id = p.id AND (o2.status IS NULL OR o2.status != 'cancelled')
+    ), 0) > 0
+    ORDER BY total_sold DESC
+    LIMIT $1
   `,
 
   /**
@@ -198,7 +253,12 @@ export const ProductsQueries = {
    * Ordenar por: profit_margin_percent descendente
    */
   calculateProfitMargins: `
-    
+    SELECT id, name, price, cost,
+           (price - cost) AS profit,
+           ROUND(((price - cost) / price) * 100, 2) AS profit_margin_percent
+    FROM products
+    WHERE is_active = true AND price > 0
+    ORDER BY profit_margin_percent DESC
   `,
 
   /**
@@ -219,7 +279,15 @@ export const ProductsQueries = {
    * Ordenar por: inventory_value descendente
    */
   getInventoryValue: `
-    
+    SELECT c.name AS category_name,
+           COUNT(p.id) AS product_count,
+           SUM(p.stock_quantity) AS total_units,
+           SUM(p.stock_quantity * p.cost) AS inventory_value
+    FROM products p
+    LEFT JOIN categories c ON p.category_id = c.id
+    WHERE p.is_active = true
+    GROUP BY c.name
+    ORDER BY inventory_value DESC
   `,
 
   /**
@@ -238,6 +306,13 @@ export const ProductsQueries = {
    * PISTA: Si el LEFT JOIN no encuentra coincidencias, oi.id será NULL
    */
   findNeverSold: `
-    
+    SELECT p.id, p.name, p.sku, p.price, p.stock_quantity, p.created_at
+    FROM products p
+    LEFT JOIN order_items oi ON p.id = oi.product_id
+    WHERE oi.id IS NULL AND p.is_active = true
+    ORDER BY p.created_at DESC
   `,
 };
+
+/* actualizacion 30/01/2026 07:21*/
+
