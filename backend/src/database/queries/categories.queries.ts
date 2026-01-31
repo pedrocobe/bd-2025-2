@@ -180,3 +180,4 @@ export const CategoriesQueries = {
     ORDER BY full_path ASC
   `,
 };
+

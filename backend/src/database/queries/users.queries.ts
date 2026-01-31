@@ -255,3 +255,6 @@ export const UsersQueries = {
     ORDER BY full_name ASC
   `,
 };
+
+
+/* actualizacion 30/01/2026 */

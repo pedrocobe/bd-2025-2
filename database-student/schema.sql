@@ -236,3 +236,6 @@ COMMENT ON TABLE customers IS 'Clientes (compradores)';
 COMMENT ON TABLE orders IS 'Pedidos realizados por clientes';
 COMMENT ON TABLE order_items IS 'Detalle de items por pedido';
 COMMENT ON TABLE audit_log IS 'Bitácora de auditoría de cambios (productos)';
+
+
+/* actualizacion 30/01/2026 */

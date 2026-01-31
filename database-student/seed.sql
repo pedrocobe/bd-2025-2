@@ -41,14 +41,22 @@ VALUES
 		(1, 'admin', 'admin@ecommerce.com', '$2b$10$YQl4z5Y5Y5Y5Y5Y5Y5Y5Y.8xJZ8xJZ8xJZ8xJZ8xJZ8xJZ8xJZ8xJ', 'Administrador del Sistema', 'admin'::user_role, TRUE, CURRENT_TIMESTAMP - INTERVAL '20 days', CURRENT_TIMESTAMP - INTERVAL '1 day'),
 		(2, 'manager', 'manager@ecommerce.com', '$2b$10$YQl4z5Y5Y5Y5Y5Y5Y5Y5Y.8xJZ8xJZ8xJZ8xJZ8xJZ8xJZ8xJZ8xJ', 'María García Gerente', 'manager'::user_role, TRUE, CURRENT_TIMESTAMP - INTERVAL '18 days', CURRENT_TIMESTAMP - INTERVAL '2 days'),
 		(3, 'employee1', 'employee1@ecommerce.com', '$2b$10$YQl4z5Y5Y5Y5Y5Y5Y5Y5Y.8xJZ8xJZ8xJZ8xJZ8xJZ8xJZ8xJZ8xJ', 'Juan Pérez Empleado', 'employee'::user_role, TRUE, CURRENT_TIMESTAMP - INTERVAL '16 days', CURRENT_TIMESTAMP - INTERVAL '3 days'),
-		(4, 'employee2', 'employee2@ecommerce.com', '$2b$10$YQl4z5Y5Y5Y5Y5Y5Y5Y5Y.8xJZ8xJZ8xJZ8xJZ8xJZ8xJZ8xJZ8xJ', 'Ana López Empleada', 'employee'::user_role, TRUE, CURRENT_TIMESTAMP - INTERVAL '14 days', CURRENT_TIMESTAMP - INTERVAL '4 days')
+		(4, 'employee2', 'employee2@ecommerce.com', '$2b$10$YQl4z5Y5Y5Y5Y5Y5Y5Y5Y.8xJZ8xJZ8xJZ8xJZ8xJZ8xJZ8xJZ8xJ', 'Ana López Empleada', 'employee'::user_role, TRUE, CURRENT_TIMESTAMP - INTERVAL '14 days', CURRENT_TIMESTAMP - INTERVAL '4 days'),
+		(5, 'supervisora', 'elena.rodriguez@ecommerce.com', '$2b$10$YQl4z5Y5Y5Y5Y5Y5Y5Y5Y.8xJZ8xJZ8xJZ8xJZ8xJZ8xJZ8xJZ8xJ', 'Elena Rodríguez', 'manager'::user_role, TRUE, CURRENT_TIMESTAMP - INTERVAL '30 days', CURRENT_TIMESTAMP - INTERVAL '5 hours'),
+		(6, 'dev_admin', 'dev@ecommerce.com', '$2b$10$YQl4z5Y5Y5Y5Y5Y5Y5Y5Y.8xJZ8xJZ8xJZ8xJZ8xJZ8xJZ8xJZ8xJ', 'Developer Admin', 'admin'::user_role, TRUE, CURRENT_TIMESTAMP - INTERVAL '60 days', CURRENT_TIMESTAMP),
+		(7, 'cajero1', 'carlos.mtz@ecommerce.com', '$2b$10$YQl4z5Y5Y5Y5Y5Y5Y5Y5Y.8xJZ8xJZ8xJZ8xJZ8xJZ8xJZ8xJZ8xJ', 'Carlos Martínez', 'employee'::user_role, TRUE, CURRENT_TIMESTAMP - INTERVAL '10 days', CURRENT_TIMESTAMP - INTERVAL '12 hours'),
+		(8, 'ventas_ext', 'sofia.vaca@ecommerce.com', '$2b$10$YQl4z5Y5Y5Y5Y5Y5Y5Y5Y.8xJZ8xJZ8xJZ8xJZ8xJZ8xJZ8xJZ8xJ', 'Sofía Vaca', 'employee'::user_role, TRUE, CURRENT_TIMESTAMP - INTERVAL '5 days', CURRENT_TIMESTAMP - INTERVAL '1 day')
 ON CONFLICT DO NOTHING;
 
 -- Variante: insertar usuarios usando CTE con VALUES
 WITH users_data (id, username, email, password_hash, full_name, role, is_active, created_at, last_login) AS (
 	VALUES
-		(6, 'aux1', 'aux1@ecom.com', '$2b$10$abc...', 'Auxiliar Uno', 'employee'::user_role, TRUE, CURRENT_TIMESTAMP - INTERVAL '2 days', CURRENT_TIMESTAMP - INTERVAL '1 hour'),
-		(7, 'aux2', 'aux2@ecom.com', '$2b$10$abc...', 'Auxiliar Dos', 'employee'::user_role, TRUE, CURRENT_TIMESTAMP - INTERVAL '3 days', CURRENT_TIMESTAMP - INTERVAL '2 hours')
+		(9, 'aux1', 'aux1@ecom.com', '$2b$10$abc...', 'Auxiliar Uno', 'employee'::user_role, TRUE, CURRENT_TIMESTAMP - INTERVAL '2 days', CURRENT_TIMESTAMP - INTERVAL '1 hour'),
+		(10, 'aux2', 'aux2@ecom.com', '$2b$10$abc...', 'Auxiliar Dos', 'employee'::user_role, TRUE, CURRENT_TIMESTAMP - INTERVAL '3 days', CURRENT_TIMESTAMP - INTERVAL '2 hours'),
+		(11, 'logistica1', 'pedro.sanchez@ecom.com', '$2b$10$abc...', 'Pedro Sánchez', 'employee'::user_role, TRUE, CURRENT_TIMESTAMP - INTERVAL '12 days', CURRENT_TIMESTAMP - INTERVAL '10 minutes'),
+        (12, 'soporte_it', 'marta.it@ecom.com', '$2b$10$abc...', 'Marta Tecnologías', 'admin'::user_role, TRUE, CURRENT_TIMESTAMP - INTERVAL '45 days', CURRENT_TIMESTAMP - INTERVAL '3 days'),
+        (13, 'contadora', 'lucia.cont@ecom.com', '$2b$10$abc...', 'Lucía Méndez', 'manager'::user_role, TRUE, CURRENT_TIMESTAMP - INTERVAL '25 days', CURRENT_TIMESTAMP - INTERVAL '2 days'),
+        (14, 'practicante', 'junior.dev@ecom.com', '$2b$10$abc...', 'Roberto Junior', 'employee'::user_role, FALSE, CURRENT_TIMESTAMP - INTERVAL '1 day', NULL)
 )
 INSERT INTO users (id, username, email, password_hash, full_name, role, is_active, created_at, last_login)
 SELECT id, username, email, password_hash, full_name, role, is_active, created_at, last_login FROM users_data
@@ -122,7 +130,17 @@ VALUES
 	(7, 'Federico', 'Alvarez', 'federico.alvarez@bd3.example', '+54-9-11-5000-0007', 'Belgrano 45', 'Buenos Aires', 'Argentina', 'C1428', TRUE, CURRENT_TIMESTAMP - INTERVAL '19 days'),
 	(8, 'Julia', 'Sosa', 'julia.sosa@bd3.example', '+54-9-11-5000-0008', 'San Telmo 9', 'Buenos Aires', 'Argentina', 'C1065', TRUE, CURRENT_TIMESTAMP - INTERVAL '18 days'),
 	(9, 'Diego', 'Pérez', 'diego.perez@bd3.example', '+54-9-11-5000-0009', 'Caballito 12', 'Buenos Aires', 'Argentina', 'C1414', TRUE, CURRENT_TIMESTAMP - INTERVAL '17 days'),
-	(10, 'Nadia', 'Cabrera', 'nadia.cabrera@bd3.example', '+54-9-11-5000-0010', 'Puerto Madero 2', 'Buenos Aires', 'Argentina', 'C1107', TRUE, CURRENT_TIMESTAMP - INTERVAL '16 days')
+	(10, 'Nadia', 'Cabrera', 'nadia.cabrera@bd3.example', '+54-9-11-5000-0010', 'Puerto Madero 2', 'Buenos Aires', 'Argentina', 'C1107', TRUE, CURRENT_TIMESTAMP - INTERVAL '16 days'),
+	(11, 'Alejandro', 'Ruiz', 'ale.ruiz@bd3.example', '+56-2-2000-1111', 'Av. Libertador 450', 'Santiago', 'Chile', '8320000', TRUE, CURRENT_TIMESTAMP - INTERVAL '15 days'),
+    (12, 'Camila', 'Toledo', 'camila.toledo@bd3.example', '+56-2-2000-2222', 'Providencia 1200', 'Santiago', 'Chile', '7500000', TRUE, CURRENT_TIMESTAMP - INTERVAL '14 days'),
+    (13, 'Javier', 'Sánchez', 'javier.sanchez@bd3.example', '+52-55-5000-3333', 'Paseo de la Reforma 50', 'CDMX', 'México', '06500', TRUE, CURRENT_TIMESTAMP - INTERVAL '13 days'),
+    (14, 'Isabella', 'Morales', 'isabella.m@bd3.example', '+52-55-5000-4444', 'Insurgentes Sur 800', 'CDMX', 'México', '03100', TRUE, CURRENT_TIMESTAMP - INTERVAL '12 days'),
+    (15, 'Mateo', 'García', 'mateo.garcia@bd3.example', '+34-915-000-555', 'Calle Mayor 15', 'Madrid', 'España', '28013', TRUE, CURRENT_TIMESTAMP - INTERVAL '11 days'),
+    (16, 'Elena', 'Vázquez', 'elena.vaz@bd3.example', '+34-932-000-666', 'Rambla de Catalunya 40', 'Barcelona', 'España', '08007', TRUE, CURRENT_TIMESTAMP - INTERVAL '10 days'),
+    (17, 'Ricardo', 'Paredes', 'ricardo.p@bd3.example', '+51-1-400-7777', 'Av. Larco 770', 'Lima', 'Perú', '15074', TRUE, CURRENT_TIMESTAMP - INTERVAL '9 days'),
+    (18, 'Luciana', 'Castro', 'luciana.c@bd3.example', '+51-1-400-8888', 'Jr. de la Unión 300', 'Lima', 'Perú', '15001', TRUE, CURRENT_TIMESTAMP - INTERVAL '8 days'),
+    (19, 'Andrés', 'Navarro', 'andres.nav@bd3.example', '+57-1-300-9999', 'Carrera 7 #71-21', 'Bogotá', 'Colombia', '110221', TRUE, CURRENT_TIMESTAMP - INTERVAL '7 days'),
+    (20, 'Gabriela', 'Ortiz', 'gaby.ortiz@bd3.example', '+57-1-300-0000', 'Calle 100 #15-30', 'Bogotá', 'Colombia', '110111', FALSE, CURRENT_TIMESTAMP - INTERVAL '6 days')
 ON CONFLICT DO NOTHING;
 
 -- Estadísticas iniciales (se recalculan por función más adelante cuando USE_MOCKS=false)
@@ -150,6 +168,7 @@ VALUES
 	(6, 5, 'ORD-2026-0006', 'cancelled', 99.97, 16.00, 20.00, 135.97, 'Calle 9 de Octubre 200', 'Guayaquil', 'Ecuador', 3, NULL, NULL, CURRENT_TIMESTAMP - INTERVAL '2 days'),
 	(7, 6, 'ORD-2026-0007', 'delivered', 153.97, 24.64, 25.00, 203.61, 'Av. Los Shyris 321', 'Quito', 'Ecuador', 4, CURRENT_TIMESTAMP - INTERVAL '6 days', CURRENT_TIMESTAMP - INTERVAL '5 days', CURRENT_TIMESTAMP - INTERVAL '7 days'),
 	(8, 7, 'ORD-2026-0008', 'processing', 304.97, 48.80, 45.00, 398.77, 'Calle Larga 55', 'Cuenca', 'Ecuador', 4, NULL, NULL, CURRENT_TIMESTAMP - INTERVAL '1 day')
+
 ON CONFLICT DO NOTHING;
 
 

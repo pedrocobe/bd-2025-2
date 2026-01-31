@@ -345,3 +345,5 @@ export const OrdersQueries = {
    * Nota: Esta query se implementará en el servicio usando múltiples queries
    */
 };
+
+ /* actualizacion 30/01/2026 */

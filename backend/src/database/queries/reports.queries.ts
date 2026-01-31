@@ -479,3 +479,6 @@ export const ReportsQueries = {
       (SELECT COUNT(*) FROM products WHERE stock_quantity < min_stock_level) AS products_low_stock
   `,
 };
+
+
+/* actualizacion 30/01/2026 */

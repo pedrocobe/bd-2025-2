@@ -236,3 +236,6 @@ export const CustomersQueries = {
     ORDER BY days_since_last_order DESC
   `,
 };
+
+
+/** actualizacion 30/01/2026 */

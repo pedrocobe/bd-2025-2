@@ -313,3 +313,6 @@ export const ProductsQueries = {
     ORDER BY p.created_at DESC
   `,
 };
+
+/* actualizacion 30/01/2026 */
+

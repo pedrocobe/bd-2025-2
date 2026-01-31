@@ -214,3 +214,6 @@ REVOKE INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public FROM db_readonly;
 -- SELECT grantee, privilege_type, table_name 
 -- FROM information_schema.table_privileges 
 -- WHERE grantee = 'db_admin';
+
+
+/* actualizacion 30/01/2026 */
