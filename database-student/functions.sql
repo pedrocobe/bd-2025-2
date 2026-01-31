@@ -22,7 +22,16 @@
 -- - Usa COALESCE para manejar NULLs
 --
 -- TODO: Escribe la función aquí
-
+-- Función 1: Calcular subtotal de pedido
+CREATE OR REPLACE FUNCTION calculate_order_subtotal(order_id INT)
+RETURNS DECIMAL AS $$
+DECLARE
+    subtotal DECIMAL(10,2);
+BEGIN
+    SELECT SUM(subtotal) INTO subtotal FROM order_items WHERE order_id = $1;
+    RETURN subtotal;
+END;
+$$ LANGUAGE plpgsql;
 
 
 -- FUNCIÓN 2: apply_discount
@@ -37,7 +46,12 @@
 -- - Redondea a 2 decimales
 --
 -- TODO: Escribe la función aquí
-
+CREATE OR REPLACE FUNCTION apply_discount(amount DECIMAL, discount_percent DECIMAL)
+RETURNS DECIMAL AS $$
+BEGIN
+    RETURN amount * (1 - discount_percent / 100);
+END;
+$$ LANGUAGE plpgsql;
 
 
 -- FUNCIÓN 3: calculate_tax
@@ -51,7 +65,12 @@
 -- - Redondea a 2 decimales
 --
 -- TODO: Escribe la función aquí
-
+CREATE OR REPLACE FUNCTION calculate_tax(amount DECIMAL, tax_rate DECIMAL)
+RETURNS DECIMAL AS $$
+BEGIN
+    RETURN amount * (tax_rate / 100);
+END;
+$$ LANGUAGE plpgsql;
 
 
 -- FUNCIÓN 4: update_customer_statistics
@@ -68,10 +87,25 @@
 -- - Retorna true si se ejecutó correctamente
 --
 -- TODO: Escribe la función aquí
+CREATE OR REPLACE FUNCTION update_customer_statistics(customer_id INT)
+RETURNS VOID AS $$
+DECLARE
+    total DECIMAL;
+    last_date TIMESTAMP;
+BEGIN
+    SELECT SUM(total_amount), MAX(order_date)
+    INTO total, last_date
+    FROM orders WHERE customer_id = $1;
+    
+    UPDATE customers
+    SET total_purchases = COALESCE(total, 0),
+        last_purchase_date = last_date
+    WHERE id = $1;
+END;
+$$ LANGUAGE plpgsql;
 
 
-
--- FUNCIÓN 5: check_product_availability
+    -- FUNCIÓN 5: check_product_availability
 -- Descripción: Verifica si hay stock suficiente de un producto
 -- Parámetros:
 --   p_product_id INTEGER - ID del producto
@@ -84,7 +118,15 @@
 -- - Retorna el resultado de la comparación
 --
 -- TODO: Escribe la función aquí
-
+CREATE OR REPLACE FUNCTION check_product_availability(product_id INT, quantity INT)
+RETURNS BOOLEAN AS $$
+DECLARE
+    available INT;
+BEGIN
+    SELECT stock_quantity INTO available FROM products WHERE id = $1;
+    RETURN available >= $2;
+END;
+$$ LANGUAGE plpgsql; 
 
 
 -- FUNCIÓN 6: calculate_profit_margin
@@ -100,7 +142,16 @@
 -- - Redondea a 2 decimales con ROUND()
 --
 -- TODO: Escribe la función aquí
-
+CREATE OR REPLACE FUNCTION product_profit_margin(product_id INT)
+RETURNS DECIMAL AS $$
+DECLARE
+    p_price DECIMAL;
+    p_cost DECIMAL;
+BEGIN
+    SELECT price, cost INTO p_price, p_cost FROM products WHERE id = $1;
+    RETURN ((p_price - p_cost) / p_price) * 100;
+END;
+$$ LANGUAGE plpgsql;
 
 
 -- FUNCIÓN 7: days_since_last_order
@@ -115,7 +166,18 @@
 -- - Si no hay pedidos, retorna NULL
 --
 -- TODO: Escribe la función aquí
-
+CREATE OR REPLACE FUNCTION days_since_last_purchase(customer_id INT)
+RETURNS INT AS $$
+DECLARE
+    last_date TIMESTAMP;
+BEGIN
+    SELECT last_purchase_date INTO last_date FROM customers WHERE id = $1;
+    IF last_date IS NULL THEN
+        RETURN -1;
+    END IF;
+    RETURN CURRENT_DATE - last_date;
+END;
+$$ LANGUAGE plpgsql;
 
 
 -- FUNCIÓN 8: get_inventory_value
@@ -128,7 +190,15 @@
 -- - Usa COALESCE para retornar 0 si no hay productos
 --
 -- TODO: Escribe la función aquí
-
+CREATE OR REPLACE FUNCTION get_inventory_value()
+RETURNS DECIMAL AS $$
+DECLARE
+    total DECIMAL;
+BEGIN
+    SELECT SUM(cost * stock_quantity) INTO total FROM products;
+    RETURN total;
+END;
+$$ LANGUAGE plpgsql;
 
 
 -- =====================================================
