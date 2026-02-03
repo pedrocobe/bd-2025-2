@@ -1,243 +1,172 @@
 -- =====================================================
--- DATOS DE PRUEBA - E-COMMERCE EXAM
--- =====================================================
--- INSTRUCCIONES:
--- 1. Inserta datos de prueba para validar tu sistema
--- 2. Asegúrate de seguir el orden correcto (respetando FKs)
--- 3. Los datos deben ser realistas y variados
+-- DATOS DE PRUEBA - E-COMMERCE EXAM (CORREGIDO)
 -- =====================================================
 
--- ORDEN SUGERIDO (importante para respetar foreign keys):
--- 1. Users (no dependen de nadie)
--- 2. Categories (las principales primero, luego las subcategorías)
--- 3. Products (dependen de categories y users)
--- 4. Customers (no dependen de nadie)
--- 5. Orders (dependen de customers y users)
--- 6. Order_items (dependen de orders y products)
-
--- TODO: Inserta datos suficientes para probar:
--- - 4 usuarios mínimo (diferentes roles: admin, manager, employee)
--- - 10-15 categorías (algunas con jerarquía padre-hijo)
--- - 20-30 productos variados en diferentes categorías
--- - 10 clientes con información completa
--- - 8 pedidos en diferentes estados
--- - Múltiples items por cada pedido
-
--- IMPORTANTE: Para las contraseñas, usa el hash bcrypt de "password123":
--- $2b$10$YQl4z5Y5Y5Y5Y5Y5Y5Y5Y.8xJZ8xJZ8xJZ8xJZ8xJZ8xJZ8xJZ8xJ
-
--- Recuerda:
--- - Usar comillas simples para strings
--- - Separar valores con comas
--- - Terminar statements con punto y coma
--- - Puedes insertar múltiples registros en un solo INSERT
-
-TRUNCATE TABLE order_items, orders, products, customers, categories, users RESTART IDENTITY CASCADE;
+-- Limpiar datos existentes
+TRUNCATE TABLE audit_log, order_items, orders, customers, products, categories, users RESTART IDENTITY CASCADE;
 
 -- =====================================================
--- 1) USERS
+-- 1. USERS
 -- =====================================================
-INSERT INTO users (id, username, email, password_hash, full_name, role, is_active, created_at, last_login)
-VALUES
-	(1, 'admin', 'admin@ecommerce.com', '$2b$10$YQl4z5Y5Y5Y5Y5Y5Y5Y5Y.8xJZ8xJZ8xJZ8xJZ8xJZ8xJZ8xJZ8xJ', 'Administrador del Sistema', 'admin', TRUE, CURRENT_TIMESTAMP - INTERVAL '20 days', CURRENT_TIMESTAMP - INTERVAL '1 day'),
-	(2, 'manager', 'manager@ecommerce.com', '$2b$10$YQl4z5Y5Y5Y5Y5Y5Y5Y5Y.8xJZ8xJZ8xJZ8xJZ8xJZ8xJZ8xJZ8xJ', 'María García Gerente', 'manager', TRUE, CURRENT_TIMESTAMP - INTERVAL '18 days', CURRENT_TIMESTAMP - INTERVAL '2 days'),
-	(3, 'employee1', 'employee1@ecommerce.com', '$2b$10$YQl4z5Y5Y5Y5Y5Y5Y5Y5Y.8xJZ8xJZ8xJZ8xJZ8xJZ8xJZ8xJZ8xJ', 'Juan Pérez Empleado', 'employee', TRUE, CURRENT_TIMESTAMP - INTERVAL '16 days', CURRENT_TIMESTAMP - INTERVAL '3 days'),
-	(4, 'employee2', 'employee2@ecommerce.com', '$2b$10$YQl4z5Y5Y5Y5Y5Y5Y5Y5Y.8xJZ8xJZ8xJZ8xJZ8xJZ8xJZ8xJZ8xJ', 'Ana López Empleada', 'employee', TRUE, CURRENT_TIMESTAMP - INTERVAL '14 days', CURRENT_TIMESTAMP - INTERVAL '4 days');
-
-
--- =====================================================
--- 2) CATEGORIES (con jerarquía)
--- =====================================================
--- Variante: insertar categorías usando VALUES como tabla derivada
-INSERT INTO categories (id, name, description, parent_id, is_active)
-SELECT v.id, v.name, v.description, v.parent_id, v.is_active
-FROM (VALUES
-	(1,  'Electrónica', 'Dispositivos electrónicos', NULL, TRUE),
-	(2,  'Ropa', 'Ropa y accesorios', NULL, TRUE),
-	(3,  'Hogar', 'Artículos para el hogar', NULL, TRUE),
-	(4,  'Deportes', 'Artículos deportivos', NULL, TRUE),
-	(5,  'Libros', 'Libros y publicaciones', NULL, TRUE),
-	(6,  'Computadoras', 'Laptops y PCs', 1, TRUE),
-	(7,  'Celulares', 'Smartphones y tablets', 1, TRUE),
-	(8,  'Audio', 'Audífonos y bocinas', 1, TRUE),
-	(9,  'Accesorios', 'Accesorios de moda', 2, TRUE),
-	(10, 'Cocina', 'Artículos de cocina', 3, TRUE),
-	(11, 'Fitness', 'Equipamiento fitness', 4, TRUE),
-	(12, 'Ficción', 'Novelas y ficción', 5, TRUE)
-) AS v(id, name, description, parent_id, is_active);
-
-DELETE FROM categories WHERE id BETWEEN 1 AND 12;
-INSERT INTO categories (id, name, description, parent_id, is_active)
-VALUES
-    (1, 'Tech Gear BD4', 'Gadgets y periféricos BD4', NULL, TRUE),
-    (2, 'Fashion BD4', 'Ropa tendencia BD4', NULL, TRUE),
-    (3, 'Home BD4', 'Hogar y lifestyle BD4', NULL, TRUE),
-    (4, 'Outdoor BD4', 'Equipo outdoor y camping', NULL, TRUE),
-    (5, 'Books BD4', 'Lectura y estudio BD4', NULL, TRUE),
-    (6, 'Laptops BD4', 'Portátiles y powerbanks', 1, TRUE),
-    (7, 'Mobiles BD4', 'Teléfonos y accesorios', 1, TRUE),
-    (8, 'Audio BD4', 'Audio para música y pro', 1, TRUE),
-    (9, 'Accs BD4', 'Complementos moda BD4', 2, TRUE),
-    (10,'Kitchen BD4', 'Cocina y gadgets culinarios', 3, TRUE),
-    (11,'Gym BD4', 'Accesorios para gimnasio', 4, TRUE),
-    (12,'Fiction BD4', 'Novelas y cuentos BD4', 5, TRUE);
-
+INSERT INTO users (username, email, password_hash, full_name, role, is_active) VALUES
+('admin', 'admin@ecommerce.com', '$2b$10$K7L/gMNLHwYK3pqR8YqHKOZ8ZqZ8ZqZ8ZqZ8ZqZ8ZqZ8ZqZ8ZqZ8Zq', 'Administrador Principal', 'admin', true),
+('manager1', 'manager@ecommerce.com', '$2b$10$K7L/gMNLHwYK3pqR8YqHKOZ8ZqZ8ZqZ8ZqZ8ZqZ8ZqZ8ZqZ8ZqZ8Zq', 'Carlos Martínez', 'manager', true),
+('employee1', 'employee1@ecommerce.com', '$2b$10$K7L/gMNLHwYK3pqR8YqHKOZ8ZqZ8ZqZ8ZqZ8ZqZ8ZqZ8ZqZ8ZqZ8Zq', 'Ana García', 'employee', true),
+('employee2', 'employee2@ecommerce.com', '$2b$10$K7L/gMNLHwYK3pqR8YqHKOZ8ZqZ8ZqZ8ZqZ8ZqZ8ZqZ8ZqZ8ZqZ8Zq', 'Luis Rodríguez', 'employee', true),
+('employee3', 'employee3@ecommerce.com', '$2b$10$K7L/gMNLHwYK3pqR8YqHKOZ8ZqZ8ZqZ8ZqZ8ZqZ8ZqZ8ZqZ8ZqZ8Zq', 'María López', 'employee', false);
 
 -- =====================================================
--- 3) PRODUCTS
+-- 2. CATEGORIES
 -- =====================================================
-INSERT INTO products (id, name, description, sku, category_id, price, cost, stock_quantity, min_stock_level, is_active, created_by, created_at)
-VALUES
-	(1,  'Laptop Dell XPS 13', 'Laptop ultradelgada con procesador Intel i7', 'DELL-XPS13-001', 6, 1299.99, 900.00, 50, 5, TRUE, 2, CURRENT_TIMESTAMP - INTERVAL '10 days'),
-	(2,  'MacBook Pro 14"', 'MacBook Pro con chip M3', 'APPLE-MBP14-001', 6, 1999.99, 1400.00, 2, 3, TRUE, 2, CURRENT_TIMESTAMP - INTERVAL '10 days'),
-	(3,  'iPhone 15 Pro', 'iPhone con cámara profesional', 'APPLE-IP15P-001', 7, 1199.99, 850.00, 60, 5, TRUE, 3, CURRENT_TIMESTAMP - INTERVAL '9 days'),
-	(4,  'Samsung Galaxy S24', 'Smartphone Android premium', 'SAMS-S24-001', 7, 999.99, 700.00, 75, 8, TRUE, 3, CURRENT_TIMESTAMP - INTERVAL '9 days'),
-	(5,  'AirPods Pro', 'Audífonos inalámbricos con cancelación de ruido', 'APPLE-APP-001', 8, 249.99, 150.00, 120, 10, TRUE, 3, CURRENT_TIMESTAMP - INTERVAL '8 days'),
-	(6,  'Bocina JBL Flip 6', 'Bocina portátil resistente al agua', 'JBL-FLIP6-001', 8, 129.99, 80.00, 90, 10, TRUE, 4, CURRENT_TIMESTAMP - INTERVAL '8 days'),
-	(7,  'Teclado Mecánico', 'Teclado mecánico RGB', 'KB-MECH-001', 6, 89.99, 45.00, 70, 10, TRUE, 4, CURRENT_TIMESTAMP - INTERVAL '7 days'),
-	(8,  'Mouse Inalámbrico', 'Mouse inalámbrico ergonómico', 'MOUSE-WL-001', 6, 39.99, 18.00, 150, 20, TRUE, 4, CURRENT_TIMESTAMP - INTERVAL '7 days'),
-	(9,  'Monitor 27" 2K', 'Monitor 27 pulgadas resolución 2K', 'MON-27-2K-001', 6, 259.99, 180.00, 3, 5, TRUE, 2, CURRENT_TIMESTAMP - INTERVAL '7 days'),
-	(10, 'Cargador USB-C 65W', 'Cargador rápido USB-C', 'CHG-USBC-65W-001', 7, 29.99, 12.00, 200, 30, TRUE, 2, CURRENT_TIMESTAMP - INTERVAL '6 days'),
-	(11, 'Funda iPhone 15', 'Funda protectora para iPhone 15', 'CASE-IP15-001', 7, 19.99, 6.00, 250, 40, TRUE, 3, CURRENT_TIMESTAMP - INTERVAL '6 days'),
-	(12, 'Audífonos Sony WH-1000XM5', 'Audífonos con cancelación de ruido', 'SONY-WHXM5-001', 8, 349.99, 240.00, 35, 5, TRUE, 3, CURRENT_TIMESTAMP - INTERVAL '6 days'),
-	(13, 'Camiseta Deportiva', 'Camiseta transpirable', 'TEE-SPORT-001', 2, 24.99, 9.00, 120, 20, TRUE, 4, CURRENT_TIMESTAMP - INTERVAL '6 days'),
-	(14, 'Pantalón Jeans', 'Jeans clásico', 'JEANS-001', 2, 49.99, 22.00, 80, 15, TRUE, 4, CURRENT_TIMESTAMP - INTERVAL '6 days'),
-	(15, 'Gorra', 'Gorra ajustable', 'CAP-001', 9, 14.99, 5.00, 100, 20, TRUE, 4, CURRENT_TIMESTAMP - INTERVAL '5 days'),
-	(16, 'Zapatillas Running', 'Zapatillas para correr', 'RUN-SHOES-001', 4, 79.99, 42.00, 60, 10, TRUE, 2, CURRENT_TIMESTAMP - INTERVAL '5 days'),
-	(17, 'Mancuernas 10kg', 'Par de mancuernas 10kg', 'DUMB-10KG-001', 11, 59.99, 32.00, 45, 8, TRUE, 2, CURRENT_TIMESTAMP - INTERVAL '5 days'),
-	(18, 'Mat de Yoga', 'Mat antideslizante', 'YOGA-MAT-001', 11, 21.99, 8.00, 110, 20, TRUE, 3, CURRENT_TIMESTAMP - INTERVAL '5 days'),
-	(19, 'Sartén Antiadherente', 'Sartén 28cm antiadherente', 'PAN-28-001', 10, 34.99, 16.00, 75, 10, TRUE, 3, CURRENT_TIMESTAMP - INTERVAL '4 days'),
-	(20, 'Juego de Cuchillos', 'Set de cuchillos de cocina', 'KNIFE-SET-001', 10, 44.99, 20.00, 50, 8, TRUE, 3, CURRENT_TIMESTAMP - INTERVAL '4 days'),
-	(21, 'Cafetera', 'Cafetera automática', 'COFFEE-001', 10, 99.99, 62.00, 25, 5, TRUE, 2, CURRENT_TIMESTAMP - INTERVAL '4 days'),
-	(22, 'Libro: SQL para Todos', 'Guía práctica de SQL', 'BOOK-SQL-001', 5, 18.99, 6.50, 140, 20, TRUE, 2, CURRENT_TIMESTAMP - INTERVAL '4 days'),
-	(23, 'Libro: El Principito', 'Clásico de la literatura', 'BOOK-FIC-001', 12, 9.99, 2.50, 180, 30, TRUE, 2, CURRENT_TIMESTAMP - INTERVAL '3 days'),
-	(24, 'Libro: Clean Code', 'Buenas prácticas de programación', 'BOOK-CC-001', 5, 29.99, 12.00, 65, 10, TRUE, 2, CURRENT_TIMESTAMP - INTERVAL '3 days'),
-	(25, 'Smartwatch', 'Reloj inteligente', 'WATCH-001', 7, 199.99, 120.00, 55, 8, TRUE, 3, CURRENT_TIMESTAMP - INTERVAL '3 days');
+INSERT INTO categories (name, description, parent_id) VALUES
+('Electrónica', 'Dispositivos y aparatos electrónicos', NULL),
+('Ropa', 'Prendas de vestir y accesorios', NULL),
+('Hogar', 'Artículos para el hogar', NULL),
+('Deportes', 'Artículos deportivos y fitness', NULL),
+('Libros', 'Libros físicos y digitales', NULL);
 
-DELETE FROM products WHERE id BETWEEN 1 AND 25;
-INSERT INTO products (id, name, description, sku, category_id, price, cost, stock_quantity, min_stock_level, is_active, created_by, created_at)
-VALUES
-	(1, 'ZenBook BD4', 'Ultrabook Zen BD4', 'BD4-NB-001', 6, 1249.00, 820.00, 28, 5, TRUE, 2, CURRENT_TIMESTAMP - INTERVAL '14 days'),
-	(2, 'ProBook BD4', 'Laptop profesional BD4', 'BD4-LTP-002', 6, 1799.00, 1250.00, 6, 3, TRUE, 2, CURRENT_TIMESTAMP - INTERVAL '13 days'),
-	(3, 'Pixel One BD4', 'Smartphone Pixel edición BD4', 'BD4-PH-003', 7, 999.00, 640.00, 48, 5, TRUE, 3, CURRENT_TIMESTAMP - INTERVAL '12 days'),
-	(4, 'Nova S BD4', 'Android Nova S BD4', 'BD4-PH-004', 7, 729.00, 500.00, 60, 8, TRUE, 3, CURRENT_TIMESTAMP - INTERVAL '12 days'),
-	(5, 'Studio Buds BD4', 'Earbuds para estudio BD4', 'BD4-AUD-005', 8, 219.00, 130.00, 75, 10, TRUE, 3, CURRENT_TIMESTAMP - INTERVAL '11 days'),
-	(6, 'WaveSpeaker BD4', 'Bocina portátil Wave BD4', 'BD4-SPK-006', 8, 139.00, 78.00, 70, 10, TRUE, 4, CURRENT_TIMESTAMP - INTERVAL '11 days'),
-	(7, 'TKL Premium BD4', 'Teclado mecánico premium BD4', 'BD4-KB-007', 6, 109.00, 55.00, 60, 10, TRUE, 4, CURRENT_TIMESTAMP - INTERVAL '10 days'),
-	(8, 'ErgoGrip BD4', 'Mouse vertical ergonómico BD4', 'BD4-MSE-008', 6, 49.00, 22.00, 110, 20, TRUE, 4, CURRENT_TIMESTAMP - INTERVAL '10 days'),
-	(9, 'ProView 27 BD4', 'Monitor 27" QHD BD4', 'BD4-MON-009', 6, 279.00, 175.00, 8, 5, TRUE, 2, CURRENT_TIMESTAMP - INTERVAL '9 days'),
-	(10, 'PowerCharge BD4', 'Cargador 65W BD4', 'BD4-CHG-010', 7, 27.00, 11.00, 160, 30, TRUE, 2, CURRENT_TIMESTAMP - INTERVAL '9 days'),
-	(11, 'ShellCase BD4', 'Funda protectora Shell BD4', 'BD4-CASE-011', 7, 20.00, 7.50, 220, 40, TRUE, 3, CURRENT_TIMESTAMP - INTERVAL '9 days'),
-	(12, 'NoisePro BD4', 'Auriculares con noise-cancel BD4', 'BD4-PRO-012', 8, 359.00, 235.00, 28, 5, TRUE, 3, CURRENT_TIMESTAMP - INTERVAL '8 days'),
-	(13, 'Active Tee BD4', 'Camiseta deportiva BD4', 'BD4-TEE-013', 2, 25.50, 9.50, 100, 20, TRUE, 4, CURRENT_TIMESTAMP - INTERVAL '8 days'),
-	(14, 'Urban Jean BD4', 'Jeans slim BD4', 'BD4-JEANS-014', 2, 52.00, 23.00, 65, 15, TRUE, 4, CURRENT_TIMESTAMP - INTERVAL '8 days'),
-	(15, 'Cap Sport BD4', 'Gorra deportiva BD4', 'BD4-CAP-015', 9, 15.00, 5.50, 85, 20, TRUE, 4, CURRENT_TIMESTAMP - INTERVAL '7 days'),
-	(16, 'RunMax BD4', 'Zapatillas running RunMax', 'BD4-RUN-016', 4, 109.00, 55.00, 45, 10, TRUE, 2, CURRENT_TIMESTAMP - INTERVAL '7 days'),
-	(17, 'Dumbbells BD4', 'Mancuernas set BD4', 'BD4-DUMB-017', 11, 69.00, 36.00, 32, 8, TRUE, 2, CURRENT_TIMESTAMP - INTERVAL '7 days'),
-	(18, 'YogaMat Pro BD4', 'Esterilla pro BD4', 'BD4-YOGA-018', 11, 24.00, 9.00, 75, 20, TRUE, 3, CURRENT_TIMESTAMP - INTERVAL '7 days'),
-	(19, 'PanChef BD4', 'Sartén antiadherente BD4', 'BD4-PAN-019', 10, 44.00, 18.50, 55, 10, TRUE, 3, CURRENT_TIMESTAMP - INTERVAL '6 days'),
-	(20, 'Knives Pro BD4', 'Set cuchillos pro BD4', 'BD4-KNIFE-020', 10, 54.00, 23.00, 30, 8, TRUE, 3, CURRENT_TIMESTAMP - INTERVAL '6 days'),
-	(21, 'Barista BD4', 'Cafetera express BD4', 'BD4-COF-021', 10, 139.00, 78.00, 12, 5, TRUE, 2, CURRENT_TIMESTAMP - INTERVAL '6 days'),
-	(22, 'SQL Pocket BD4', 'Guía SQL BD4', 'BD4-BOOK-022', 5, 17.50, 6.00, 110, 20, TRUE, 2, CURRENT_TIMESTAMP - INTERVAL '5 days'),
-	(23, 'Principe BD4', 'Edición ilustrada BD4', 'BD4-BOOK-023', 12, 10.50, 2.50, 140, 30, TRUE, 2, CURRENT_TIMESTAMP - INTERVAL '5 days'),
-	(24, 'CodeCraft BD4', 'Clean Code + ejemplos BD4', 'BD4-BOOK-024', 5, 33.00, 14.00, 45, 10, TRUE, 2, CURRENT_TIMESTAMP - INTERVAL '5 days'),
-	(25, 'Smart Wrist BD4', 'Reloj inteligente avanzado BD4', 'BD4-WATCH-025', 7, 219.00, 130.00, 38, 8, TRUE, 3, CURRENT_TIMESTAMP - INTERVAL '5 days');
-
+INSERT INTO categories (name, description, parent_id) VALUES
+('Computadoras', 'Laptops, desktops y tablets', 1),
+('Celulares', 'Smartphones y accesorios', 1),
+('Audio', 'Audífonos, bocinas y equipos de sonido', 1),
+('Hombre', 'Ropa para hombre', 2),
+('Mujer', 'Ropa para mujer', 2),
+('Niños', 'Ropa infantil', 2),
+('Cocina', 'Utensilios y electrodomésticos de cocina', 3),
+('Muebles', 'Muebles para el hogar', 3),
+('Gimnasio', 'Equipo para gimnasio', 4);
 
 -- =====================================================
--- 4) CUSTOMERS
+-- 3. PRODUCTS
 -- =====================================================
-INSERT INTO customers (id, first_name, last_name, email, phone, address, city, country, postal_code, is_active, created_at)
-VALUES
-	(1, 'Oliver', 'Reed', 'oliver.reed@bd4.example', '+34-600-100-001', 'Calle Montaña 1', 'Bilbao', 'Spain', '48001', TRUE, CURRENT_TIMESTAMP - INTERVAL '25 days'),
-	(2, 'Emma', 'Blake', 'emma.blake@bd4.example', '+34-600-100-002', 'Paseo Marítimo 12', 'Bilbao', 'Spain', '48002', TRUE, CURRENT_TIMESTAMP - INTERVAL '24 days'),
-	(3, 'Liam', 'Hart', 'liam.hart@bd4.example', '+34-600-100-003', 'Av. Sendero 45', 'Bilbao', 'Spain', '48003', TRUE, CURRENT_TIMESTAMP - INTERVAL '23 days'),
-	(4, 'Ava', 'Cole', 'ava.cole@bd4.example', '+34-600-100-004', 'Plaza del Sol 7', 'Bilbao', 'Spain', '48004', TRUE, CURRENT_TIMESTAMP - INTERVAL '22 days'),
-	(5, 'Noah', 'Cruz', 'noah.cruz@bd4.example', '+34-600-100-005', 'Camino Alto 9', 'Bilbao', 'Spain', '48005', TRUE, CURRENT_TIMESTAMP - INTERVAL '21 days'),
-	(6, 'Mia', 'Stone', 'mia.stone@bd4.example', '+34-600-100-006', 'Barrio Verde 3', 'Bilbao', 'Spain', '48006', TRUE, CURRENT_TIMESTAMP - INTERVAL '20 days'),
-	(7, 'Ethan', 'Ford', 'ethan.ford@bd4.example', '+34-600-100-007', 'Rincón del Viento 20', 'Bilbao', 'Spain', '48007', TRUE, CURRENT_TIMESTAMP - INTERVAL '19 days'),
-	(8, 'Zoe', 'Parker', 'zoe.parker@bd4.example', '+34-600-100-008', 'Calle Roble 14', 'Bilbao', 'Spain', '48008', TRUE, CURRENT_TIMESTAMP - INTERVAL '18 days'),
-	(9, 'Lucas', 'Reyes', 'lucas.reyes@bd4.example', '+34-600-100-009', 'Camino de la Ría 6', 'Bilbao', 'Spain', '48009', TRUE, CURRENT_TIMESTAMP - INTERVAL '17 days'),
-	(10, 'Chloe', 'Wood', 'chloe.wood@bd4.example', '+34-600-100-010', 'Puente Nuevo 2', 'Bilbao', 'Spain', '48010', TRUE, CURRENT_TIMESTAMP - INTERVAL '16 days');
+INSERT INTO products (name, description, sku, price, cost, stock_quantity, min_stock_level, category_id, is_active) VALUES
+-- Computadoras (category_id: 6)
+('Laptop Dell Inspiron 15', 'Laptop con procesador Intel Core i5, 8GB RAM, 256GB SSD', 'DELL-INS-001', 699.99, 500.00, 15, 10, 6, true),
+('MacBook Air M2', 'MacBook Air con chip M2, 8GB RAM, 256GB SSD', 'APPLE-MBA-001', 1199.99, 900.00, 8, 5, 6, true),
+('iPad Pro 11"', 'iPad Pro de 11 pulgadas, 128GB', 'APPLE-IPD-001', 799.99, 600.00, 12, 10, 6, true),
 
--- Estadísticas iniciales (se recalculan por función más adelante cuando USE_MOCKS=false)
-UPDATE customers SET total_spent = 340.00, order_count = 2 WHERE id = 1;
-UPDATE customers SET total_spent = 120.50, order_count = 1 WHERE id = 2;
-UPDATE customers SET total_spent = 210.00, order_count = 1 WHERE id = 3;
-UPDATE customers SET total_spent = 75.75,  order_count = 1 WHERE id = 4;
-UPDATE customers SET total_spent = 5.00,   order_count = 0 WHERE id = 5;
-UPDATE customers SET total_spent = 400.10, order_count = 1 WHERE id = 6;
-UPDATE customers SET total_spent = 60.60,  order_count = 1 WHERE id = 7;
+-- Celulares (category_id: 7)
+('iPhone 15 Pro', 'iPhone 15 Pro 256GB, Titanio Natural', 'APPLE-IP15-001', 1099.99, 800.00, 20, 10, 7, true),
+('Samsung Galaxy S24', 'Samsung Galaxy S24 5G, 128GB', 'SAMS-S24-001', 899.99, 650.00, 25, 15, 7, true),
+('Xiaomi Redmi Note 13', 'Xiaomi Redmi Note 13 Pro, 256GB', 'XIAO-RN13-001', 299.99, 200.00, 40, 20, 7, true),
 
+-- Audio (category_id: 8)
+('AirPods Pro 2', 'AirPods Pro de 2da generación con USB-C', 'APPLE-APP-001', 249.99, 180.00, 30, 15, 8, true),
+('Sony WH-1000XM5', 'Audífonos con cancelación de ruido premium', 'SONY-WH5-001', 399.99, 280.00, 18, 10, 8, true),
+('JBL Flip 6', 'Bocina Bluetooth portátil resistente al agua', 'JBL-FLP6-001', 129.99, 80.00, 35, 20, 8, true),
 
--- =====================================================
--- 5) ORDERS
--- =====================================================
--- Nota: order_number se genera con trigger si es NULL.
--- En seed.sql aún no existen triggers, por eso se insertan order_number y totales manualmente.
-INSERT INTO orders (id, customer_id, order_number, status, subtotal, tax, shipping_cost, total, shipping_address, shipping_city, shipping_country, created_by, shipped_at, delivered_at, created_at)
-VALUES
-	(1, 1, 'ORD-2026-0001', 'delivered', 1609.96, 257.59, 50.00, 1917.55, 'Av. Reforma 123', 'Ciudad de México', 'México', 3, CURRENT_TIMESTAMP - INTERVAL '9 days', CURRENT_TIMESTAMP - INTERVAL '7 days', CURRENT_TIMESTAMP - INTERVAL '10 days'),
-	(2, 2, 'ORD-2026-0002', 'delivered', 1039.97, 166.40, 30.00, 1236.37, 'Calle Juárez 456', 'Guadalajara', 'México', 3, CURRENT_TIMESTAMP - INTERVAL '8 days', CURRENT_TIMESTAMP - INTERVAL '6 days', CURRENT_TIMESTAMP - INTERVAL '9 days'),
-	(3, 3, 'ORD-2026-0003', 'shipped', 2349.98, 376.00, 80.00, 2805.98, 'Blvd. Díaz Ordaz 789', 'Monterrey', 'México', 4, CURRENT_TIMESTAMP - INTERVAL '4 days', NULL, CURRENT_TIMESTAMP - INTERVAL '6 days'),
-	(4, 1, 'ORD-2026-0004', 'processing', 1344.97, 215.20, 50.00, 1610.17, 'Av. Reforma 123', 'Ciudad de México', 'México', 4, NULL, NULL, CURRENT_TIMESTAMP - INTERVAL '4 days'),
-	(5, 4, 'ORD-2026-0005', 'pending', 123.97, 19.84, 40.00, 183.81, 'Av. Universidad 100', 'Quito', 'Ecuador', 3, NULL, NULL, CURRENT_TIMESTAMP - INTERVAL '3 days'),
-	(6, 5, 'ORD-2026-0006', 'cancelled', 99.97, 16.00, 20.00, 135.97, 'Calle 9 de Octubre 200', 'Guayaquil', 'Ecuador', 3, NULL, NULL, CURRENT_TIMESTAMP - INTERVAL '2 days'),
-	(7, 6, 'ORD-2026-0007', 'delivered', 153.97, 24.64, 25.00, 203.61, 'Av. Los Shyris 321', 'Quito', 'Ecuador', 4, CURRENT_TIMESTAMP - INTERVAL '6 days', CURRENT_TIMESTAMP - INTERVAL '5 days', CURRENT_TIMESTAMP - INTERVAL '7 days'),
-	(8, 7, 'ORD-2026-0008', 'processing', 304.97, 48.80, 45.00, 398.77, 'Calle Larga 55', 'Cuenca', 'Ecuador', 4, NULL, NULL, CURRENT_TIMESTAMP - INTERVAL '1 day');
+-- Ropa Hombre (category_id: 9)
+('Camisa Formal Azul', 'Camisa de vestir azul marino, algodón 100%', 'CLOTH-SH-001', 49.99, 25.00, 50, 25, 9, true),
+('Jeans Levi''s 501', 'Jeans clásicos Levi''s 501, corte regular', 'LEVIS-501-001', 79.99, 45.00, 60, 30, 9, true),
+('Chaqueta de Cuero', 'Chaqueta de cuero genuino color negro', 'JACKET-LTH-001', 199.99, 120.00, 15, 10, 9, true),
 
+-- Ropa Mujer (category_id: 10)
+('Vestido Floral', 'Vestido floral de verano, tela ligera', 'DRESS-FLR-001', 59.99, 30.00, 40, 20, 10, true),
+('Blusa Blanca Elegante', 'Blusa blanca de seda, ideal para oficina', 'BLOUSE-WHT-001', 69.99, 35.00, 45, 25, 10, true),
 
--- =====================================================
--- 6) ORDER_ITEMS
--- =====================================================
--- unit_price se registra al momento de la compra.
-INSERT INTO order_items (order_id, product_id, quantity, unit_price, subtotal)
-VALUES
-	-- Order 1
-	(1, 1, 1, 1299.99, 1299.99),
-	(1, 5, 1, 249.99, 249.99),
-	(1, 10, 2, 29.99, 59.98),
+-- Cocina (category_id: 12)
+('Licuadora Oster', 'Licuadora de 10 velocidades, 600W', 'OSTER-BLD-001', 89.99, 50.00, 25, 15, 12, true),
+('Juego de Sartenes', 'Set de 3 sartenes antiadherentes', 'KITCHEN-PAN-001', 119.99, 70.00, 20, 10, 12, true),
+('Cafetera Nespresso', 'Cafetera de cápsulas Nespresso', 'NESPRESSO-001', 149.99, 90.00, 18, 10, 12, true),
 
-	-- Order 2
-	(2, 4, 1, 999.99, 999.99),
-	(2, 11, 2, 19.99, 39.98),
+-- Muebles (category_id: 13)
+('Sofá 3 Plazas Gris', 'Sofá moderno de 3 plazas, tela gris', 'SOFA-3P-001', 599.99, 350.00, 8, 5, 13, true),
+('Mesa de Centro', 'Mesa de centro de madera y vidrio', 'TABLE-CTR-001', 199.99, 120.00, 12, 8, 13, true),
 
-	-- Order 3
-	(3, 2, 1, 1999.99, 1999.99),
-	(3, 12, 1, 349.99, 349.99),
+-- Gimnasio (category_id: 14)
+('Mancuernas Ajustables', 'Par de mancuernas ajustables 5-25kg', 'GYM-DUMB-001', 199.99, 120.00, 15, 10, 14, true),
+('Caminadora Eléctrica', 'Caminadora plegable con pantalla LCD', 'GYM-TREAD-001', 499.99, 300.00, 6, 5, 14, true),
+('Yoga Mat Premium', 'Tapete de yoga antideslizante 6mm', 'GYM-YOGA-001', 39.99, 20.00, 50, 25, 14, true),
 
-	-- Order 4
-	(4, 3, 1, 1199.99, 1199.99),
-	(4, 6, 1, 129.99, 129.99),
-	(4, 15, 1, 14.99, 14.99),
-
-	-- Order 5
-	(5, 16, 1, 79.99, 79.99),
-	(5, 18, 2, 21.99, 43.98),
-
-	-- Order 6 (cancelled)
-	(6, 13, 2, 24.99, 49.98),
-	(6, 14, 1, 49.99, 49.99),
-
-	-- Order 7
-	(7, 21, 1, 99.99, 99.99),
-	(7, 22, 1, 18.99, 18.99),
-	(7, 19, 1, 34.99, 34.99),
-
-	-- Order 8
-	(8, 25, 1, 199.99, 199.99),
-	(8, 17, 1, 59.99, 59.99),
-	(8, 20, 1, 44.99, 44.99);
-
-
+-- Libros (category_id: 5)
+('Cien Años de Soledad', 'Gabriel García Márquez - Novela clásica', 'BOOK-GGM-001', 19.99, 10.00, 100, 50, 5, true),
+('El Principito', 'Antoine de Saint-Exupéry - Libro ilustrado', 'BOOK-ASE-001', 14.99, 8.00, 80, 40, 5, true),
+('1984', 'George Orwell - Distopía clásica', 'BOOK-GO-001', 16.99, 9.00, 75, 35, 5, true);
 
 -- =====================================================
--- ACTUALIZAR SECUENCIAS (importante para tests)
+-- 4. CUSTOMERS
 -- =====================================================
-SELECT setval('users_id_seq', (SELECT MAX(id) FROM users));
-SELECT setval('categories_id_seq', (SELECT MAX(id) FROM categories));
-SELECT setval('products_id_seq', (SELECT MAX(id) FROM products));
-SELECT setval('customers_id_seq', (SELECT MAX(id) FROM customers));
-SELECT setval('orders_id_seq', (SELECT MAX(id) FROM orders));
-SELECT setval('order_items_id_seq', (SELECT MAX(id) FROM order_items));
+INSERT INTO customers (first_name, last_name, email, phone, address, city, country) VALUES
+('Juan', 'Pérez', 'juan.perez@email.com', '+593-98-765-4321', 'Av. Amazonas N24-03', 'Quito', 'Ecuador'),
+('María', 'González', 'maria.gonzalez@email.com', '+593-99-123-4567', 'Calle 10 de Agosto 234', 'Quito', 'Ecuador'),
+('Carlos', 'Ramírez', 'carlos.ramirez@email.com', '+593-98-234-5678', 'Av. 6 de Diciembre 456', 'Quito', 'Ecuador'),
+('Ana', 'Martínez', 'ana.martinez@email.com', '+593-99-345-6789', 'Calle Venezuela 789', 'Quito', 'Ecuador'),
+('Luis', 'Fernández', 'luis.fernandez@email.com', '+593-98-456-7890', 'Av. Naciones Unidas 123', 'Quito', 'Ecuador'),
+('Laura', 'Torres', 'laura.torres@email.com', '+593-99-567-8901', 'Calle Shyris 456', 'Quito', 'Ecuador'),
+('Pedro', 'Sánchez', 'pedro.sanchez@email.com', '+593-98-678-9012', 'Av. República 789', 'Quito', 'Ecuador'),
+('Sofia', 'López', 'sofia.lopez@email.com', '+593-99-789-0123', 'Calle Colón 321', 'Quito', 'Ecuador'),
+('Diego', 'Vargas', 'diego.vargas@email.com', '+593-98-890-1234', 'Av. Patria 654', 'Quito', 'Ecuador'),
+('Carmen', 'Morales', 'carmen.morales@email.com', '+593-99-901-2345', 'Calle Orellana 987', 'Quito', 'Ecuador');
 
+-- =====================================================
+-- 5. ORDERS
+-- =====================================================
+INSERT INTO orders (customer_id, order_date, total_amount, status, shipping_address, notes) VALUES
+(1, '2026-01-20 10:30:00', 1949.97, 'delivered', 'Av. Amazonas N24-03, Quito, Ecuador', 'Entrega rápida solicitada'),
+(2, '2026-01-21 14:15:00', 349.98, 'delivered', 'Calle 10 de Agosto 234, Quito, Ecuador', NULL),
+(3, '2026-01-22 09:45:00', 1099.99, 'shipped', 'Av. 6 de Diciembre 456, Quito, Ecuador', 'Cliente prefiere entrega por la tarde'),
+(4, '2026-01-23 16:20:00', 101.96, 'processing', 'Calle Venezuela 789, Quito, Ecuador', NULL),
+(5, '2026-01-24 11:00:00', 1499.98, 'processing', 'Av. Naciones Unidas 123, Quito, Ecuador', 'Enviar factura electrónica'),
+(6, '2026-01-25 13:30:00', 179.97, 'pending', 'Calle Shyris 456, Quito, Ecuador', NULL),
+(7, '2026-01-26 15:45:00', 199.99, 'pending', 'Av. República 789, Quito, Ecuador', 'Empacar con cuidado'),
+(8, '2026-01-27 10:00:00', 1299.98, 'cancelled', 'Calle Colón 321, Quito, Ecuador', 'Cliente canceló por error en dirección');
+
+-- =====================================================
+-- 6. ORDER_ITEMS
+-- =====================================================
+
+-- Pedido 1 (customer 1) - 3 items
+INSERT INTO order_items (order_id, product_id, quantity, unit_price, subtotal) VALUES
+(1, 2, 1, 1199.99, 1199.99),  -- MacBook Air
+(1, 7, 2, 249.99, 499.98),    -- AirPods Pro (x2)
+(1, 9, 1, 129.99, 129.99);    -- JBL Flip 6 (producto 9 existe)
+
+-- Pedido 2 (customer 2) - 2 items
+INSERT INTO order_items (order_id, product_id, quantity, unit_price, subtotal) VALUES
+(2, 6, 1, 299.99, 299.99),    -- Xiaomi Redmi Note
+(2, 9, 1, 49.99, 49.99);      -- JBL (ajustado)
+
+-- Pedido 3 (customer 3) - 1 item
+INSERT INTO order_items (order_id, product_id, quantity, unit_price, subtotal) VALUES
+(3, 4, 1, 1099.99, 1099.99);  -- iPhone 15 Pro
+
+-- Pedido 4 (customer 4) - 3 items (LIBROS: productos 23, 24, 25)
+INSERT INTO order_items (order_id, product_id, quantity, unit_price, subtotal) VALUES
+(4, 23, 2, 19.99, 39.98),     -- Cien Años de Soledad (x2)
+(4, 24, 3, 14.99, 44.97),     -- El Principito (x3)
+(4, 25, 1, 16.99, 16.99);     -- 1984
+
+-- Pedido 5 (customer 5) - 2 items
+INSERT INTO order_items (order_id, product_id, quantity, unit_price, subtotal) VALUES
+(5, 5, 1, 899.99, 899.99),    -- Samsung Galaxy
+(5, 1, 1, 699.99, 699.99);    -- Laptop Dell (en vez de Sony)
+
+-- Pedido 6 (customer 6) - 3 items
+INSERT INTO order_items (order_id, product_id, quantity, unit_price, subtotal) VALUES
+(6, 13, 1, 59.99, 59.99),     -- Vestido Floral
+(6, 14, 1, 69.99, 69.99),     -- Blusa Blanca
+(6, 10, 1, 49.99, 49.99);     -- Camisa Formal
+
+-- Pedido 7 (customer 7) - 1 item
+INSERT INTO order_items (order_id, product_id, quantity, unit_price, subtotal) VALUES
+(7, 20, 1, 199.99, 199.99);   -- Mancuernas
+
+-- Pedido 8 (customer 8) - CANCELADO - 2 items
+INSERT INTO order_items (order_id, product_id, quantity, unit_price, subtotal) VALUES
+(8, 1, 1, 699.99, 699.99),    -- Laptop Dell
+(8, 18, 1, 599.99, 599.99);   -- Sofá
+
+-- =====================================================
+-- VERIFICACIÓN
+-- =====================================================
+SELECT 'Users:' as tabla, COUNT(*) as total FROM users
+UNION ALL
+SELECT 'Categories:', COUNT(*) FROM categories
+UNION ALL
+SELECT 'Products:', COUNT(*) FROM products
+UNION ALL
+SELECT 'Customers:', COUNT(*) FROM customers
+UNION ALL
+SELECT 'Orders:', COUNT(*) FROM orders
+UNION ALL
+SELECT 'Order Items:', COUNT(*) FROM order_items;
